@@ -1,0 +1,195 @@
+.elotracker-section {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.elotracker-header h2 {
+  font-size: 28px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.elotracker-header p {
+  font-size: 14px;
+  color: rgba(22, 36, 29, 0.6);
+}
+
+.elos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.elo-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.elo-connection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--paper);
+  border-radius: 12px;
+  gap: 12px;
+}
+
+.user-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar-small {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--amber));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.user-label-small {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 600;
+  text-align: center;
+  max-width: 60px;
+}
+
+.elo-user-info h4 {
+  font-size: 18px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.elo-user-info p {
+  font-size: 14px;
+  color: rgba(22, 36, 29, 0.6);
+  line-height: 1.5;
+}
+
+.elo-status-tracker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.status-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.status-step.active {
+  opacity: 1;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 0.2s;
+}
+
+.status-step.active .status-dot {
+  background: var(--green);
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.btn-advance {
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--green);
+  color: var(--white);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+}
+
+.btn-advance:hover {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+}
+
+.success-message {
+  padding: 16px;
+  background: rgba(31, 109, 76, 0.1);
+  border: 1px solid rgba(31, 109, 76, 0.3);
+  border-radius: 12px;
+  color: var(--green);
+  font-weight: 600;
+  text-align: center;
+  font-size: 15px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: var(--white);
+  border: 1px dashed var(--line);
+  border-radius: 20px;
+  max-width: 500px;
+  margin: 40px auto 0;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: var(--ink);
+}
+
+.empty-state p {
+  font-size: 15px;
+  color: rgba(22, 36, 29, 0.6);
+  line-height: 1.6;
+  max-width: 35ch;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .elo-connection {
+    flex-wrap: wrap;
+  }
+
+  .elo-status-tracker {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .user-label-small {
+    font-size: 9px;
+  }
+}

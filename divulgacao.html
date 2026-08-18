@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adote um Desempregado — Participe do movimento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Work+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16241D;
+    --green:#1F6D4C;
+    --green-dark:#144D36;
+    --amber:#F0A93A;
+    --coral:#E85B3D;
+    --paper:#F2F1E6;
+    --paper-alt:#E7E2CD;
+    --white:#FFFEFA;
+    --line: rgba(22,36,29,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    font-size:17px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+  a{color:inherit;}
+  .wrap{max-width:1100px; margin:0 auto; padding:0 24px;}
+  h1,h2,h3{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:3px;
+    text-transform:uppercase; color:var(--green); font-weight:600;
+  }
+
+  /* --- top bar: logo only, no nav/app links --- */
+  .topbar{ padding:22px 0; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-name{ font-family:'Fraunces', serif; font-weight:600; font-size:18px; line-height:1.1;}
+  .brand-sub{ font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:2px; color:var(--green); text-transform:uppercase;}
+
+  /* --- big bold hero --- */
+  .hero{ padding:64px 0 56px; text-align:center; position:relative; }
+  .hero-eyebrow{ margin-bottom:20px; }
+  .hero h1{
+    font-size:clamp(38px, 8vw, 84px);
+    font-weight:800;
+    line-height:1.02;
+    letter-spacing:-0.02em;
+    max-width:16ch;
+    margin:0 auto;
+  }
+  .hero h1 .accent{ color:var(--coral); font-style:italic; font-weight:600; }
+  .hero-sub{
+    margin:26px auto 0;
+    max-width:52ch;
+    font-size:19px;
+    color:#3B473F;
+  }
+  .hero-lema{
+    margin:30px auto 0;
+    max-width:44ch;
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:17px;
+    color:var(--green-dark);
+  }
+  .hero-actions{ display:flex; gap:16px; justify-content:center; margin-top:42px; flex-wrap:wrap; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:16px 32px; border-radius:100px;
+    font-weight:700; font-size:16.5px; text-decoration:none;
+    border:2px solid transparent; cursor:pointer;
+    transition:transform .15s ease;
+  }
+  .btn:hover{ transform:translateY(-2px) scale(1.02); }
+  .btn-coral{ background:var(--coral); color:var(--white); box-shadow:0 5px 0 #b8431f; }
+  .btn-green{ background:var(--green); color:var(--white); box-shadow:0 5px 0 var(--green-dark); }
+  .btn-outline{ background:transparent; border-color:var(--ink); color:var(--ink); }
+
+  .hero-elo{ display:flex; justify-content:center; margin-top:56px; }
+  .ring{ stroke-dasharray:460; stroke-dashoffset:460; animation:draw 1.3s ease forwards; }
+  .ring.r2{ animation-delay:.22s; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+
+  /* --- number stripe --- */
+  .stripe{
+    background:var(--ink); color:var(--paper);
+    padding:22px 0; overflow:hidden; white-space:nowrap;
+  }
+  .stripe-track{
+    display:inline-flex; gap:48px; animation: scroll 22s linear infinite;
+    font-family:'IBM Plex Mono', monospace; font-size:14px; letter-spacing:2px; text-transform:uppercase;
+  }
+  .stripe-track span{ opacity:0.85; }
+  .stripe-track .dot{ color:var(--amber); }
+  @keyframes scroll{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
+
+  /* --- purpose, punchy --- */
+  .purpose{ padding:88px 0 64px; text-align:center; }
+  .purpose h2{
+    font-size:clamp(28px, 5vw, 46px); font-weight:700; max-width:18ch; margin:0 auto;
+  }
+  .purpose h2 em{ font-style:italic; color:var(--green); font-weight:600; }
+  .purpose-not{
+    display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:40px;
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 22px; border-radius:100px; font-weight:700; font-size:15px;
+  }
+  .chip.no{ background:var(--white); border:2px solid var(--line); color:#8A6B60; text-decoration:line-through; }
+  .chip.yes{ background:var(--green); color:var(--white); }
+
+  /* --- how it works --- */
+  .how{ padding:72px 0 96px; }
+  .how-head{ text-align:center; max-width:640px; margin:0 auto 48px; }
+  .how-head h2{ font-size:clamp(26px,4vw,38px); margin-top:14px; }
+  .roles{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  @media (max-width:820px){ .roles{ grid-template-columns:1fr; } }
+  .role{
+    background:var(--white); border:1px solid var(--line); border-radius:22px;
+    padding:32px 26px; text-align:left;
+  }
+  .role .emoji{ font-size:30px; }
+  .role h3{ font-size:22px; margin-top:14px; }
+  .role p{ margin-top:8px; color:#3B473F; font-size:15px; }
+
+  /* --- final call --- */
+  .final{
+    background:linear-gradient(135deg, var(--green-dark), var(--green));
+    color:var(--white);
+    padding:96px 0;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .final .wrap{ position:relative; z-index:2; }
+  .final h2{ font-size:clamp(32px,6vw,58px); font-weight:800; max-width:16ch; margin:0 auto; }
+  .final p{ margin-top:20px; max-width:48ch; margin-left:auto; margin-right:auto; color:#DCE9DF; font-size:18px; }
+  .final .hero-actions{ margin-top:38px; }
+  .final .btn-outline{ border-color:rgba(255,255,255,0.6); color:var(--white); }
+  .final-elo{ position:absolute; opacity:0.12; }
+  .final-elo.a{ top:-60px; left:-60px; width:280px; }
+  .final-elo.b{ bottom:-70px; right:-70px; width:320px; }
+
+  footer{ padding:40px 0; text-align:center; }
+  footer p{ font-size:13px; color:#6B776F; }
+  footer .foot-lema{ font-family:'Fraunces', serif; font-style:italic; color:#4A5850; font-size:14px; margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap brand">
+    <svg width="34" height="34" viewBox="0 0 240 240" aria-hidden="true">
+      <rect x="35" y="85" width="150" height="70" rx="35" fill="none" stroke="#1F6D4C" stroke-width="24"/>
+      <rect x="55" y="85" width="150" height="70" rx="35" fill="none" stroke="#F0A93A" stroke-width="24" transform="rotate(44 130 120)"/>
+    </svg>
+    <div>
+      <div class="brand-sub">TISL + EmpregoSocial</div>
+      <div class="brand-name">Adote um Desempregado</div>
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-eyebrow eyebrow">O maior movimento de recolocação do Brasil está começando</div>
+    <h1>Uma indicação sua pode <span class="accent">mudar</span> a vida de alguém.</h1>
+    <p class="hero-sub">A Adote um Desempregado é uma corrente voluntária: quem está empregado apoia quem está procurando uma oportunidade. Sem mensalidade, sem cobrança — só compromisso entre pessoas.</p>
+    <p class="hero-lema">"Quem está empregado pode mudar a vida de quem procura uma oportunidade."</p>
+    <div class="hero-actions">
+      <a href="https://forms.gle/eZqK35VfDR8abyER9" target="_blank" rel="noreferrer" class="btn btn-coral">Quero ser mentor</a>
+      <a href="https://forms.gle/YuN56r15MbTKnJ188" target="_blank" rel="noreferrer" class="btn btn-outline">Preciso de recolocação</a>
+    </div>
+    <div class="hero-elo">
+      <svg width="140" height="140" viewBox="0 0 240 240" aria-hidden="true">
+        <rect class="ring r1" x="35" y="85" width="150" height="70" rx="35" fill="none" stroke="#1F6D4C" stroke-width="26"/>
+        <rect class="ring r2" x="55" y="85" width="150" height="70" rx="35" fill="none" stroke="#F0A93A" stroke-width="26" transform="rotate(44 130 120)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="stripe" aria-hidden="true">
+  <div class="stripe-track">
+    <span>Conectar <span class="dot">●</span> Indicar <span class="dot">●</span> Revisar currículo <span class="dot">●</span> Simular entrevista <span class="dot">●</span> Recolocar <span class="dot">●</span></span>
+    <span>Conectar <span class="dot">●</span> Indicar <span class="dot">●</span> Revisar currículo <span class="dot">●</span> Simular entrevista <span class="dot">●</span> Recolocar <span class="dot">●</span></span>
+  </div>
+</div>
+
+<section class="purpose">
+  <div class="wrap">
+    <h2>Não é sobre <em>dinheiro</em>. É sobre <em>conexão</em>.</h2>
+    <div class="purpose-not">
+      <span class="chip no">Mensalidade</span>
+      <span class="chip no">Cobrança</span>
+      <span class="chip yes">✓ Compromisso</span>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="wrap">
+    <div class="how-head">
+      <div class="eyebrow">Como participar</div>
+      <h2>Escolha o seu papel na corrente</h2>
+    </div>
+    <div class="roles">
+      <div class="role">
+        <div class="emoji">🤝</div>
+        <h3>Mentor</h3>
+        <p>Já está empregado? Ajude com indicação, revisão de currículo, LinkedIn, simulação de entrevista ou apenas uma conversa. O que você já sabe pode abrir a porta de alguém.</p>
+      </div>
+      <div class="role">
+        <div class="emoji">👤</div>
+        <h3>Profissional</h3>
+        <p>Está buscando recolocação? Entre na corrente e receba apoio de quem já passou por isso — sem mensalidade, sem cobrança, até você ser recolocado.</p>
+      </div>
+      <div class="role">
+        <div class="emoji">🏢</div>
+        <h3>Empresa</h3>
+        <p>Divulgue vagas gratuitamente, apoie a recolocação de profissionais e fortaleça sua marca empregadora participando de uma iniciativa social real.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <svg class="final-elo a" viewBox="0 0 240 240"><rect x="35" y="85" width="150" height="70" rx="35" fill="none" stroke="#fff" stroke-width="24"/><rect x="55" y="85" width="150" height="70" rx="35" fill="none" stroke="#fff" stroke-width="24" transform="rotate(44 130 120)"/></svg>
+  <svg class="final-elo b" viewBox="0 0 240 240"><rect x="35" y="85" width="150" height="70" rx="35" fill="none" stroke="#fff" stroke-width="24"/><rect x="55" y="85" width="150" height="70" rx="35" fill="none" stroke="#fff" stroke-width="24" transform="rotate(44 130 120)"/></svg>
+  <div class="wrap">
+    <h2>Faça parte da corrente do bem.</h2>
+    <p>Leva menos tempo do que parece: uma indicação, uma leitura de currículo, uma simulação de entrevista. Mande um e-mail e a gente te conecta.</p>
+    <div class="hero-actions">
+      <a href="https://forms.gle/eZqK35VfDR8abyER9" target="_blank" rel="noreferrer" class="btn btn-coral">Quero participar</a>
+      <a href="https://forms.gle/dmgUKYHrnD9VMwLDA" target="_blank" rel="noreferrer" class="btn btn-outline">Sou empresa parceira</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="foot-lema">"Quem está empregado pode mudar a vida de quem procura uma oportunidade."</p>
+    <p>© 2026 Adote um Desempregado — um movimento TISL + EmpregoSocial · contato@empregosocial.com.br</p>
+  </div>
+</footer>
+
+</body>
+</html>
