@@ -18,7 +18,7 @@ export default function JobBoard() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -27,9 +27,13 @@ export default function JobBoard() {
       return
     }
 
-    postJob(formData.company, formData.title, formData.location, formData.link)
-    setFormData({ company: '', title: '', location: '', link: '' })
-    setShowForm(false)
+    try {
+      await postJob(formData)
+      setFormData({ company: '', title: '', location: '', link: '' })
+      setShowForm(false)
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   const isCompany = currentUser.role === 'Empresa'
@@ -124,7 +128,7 @@ export default function JobBoard() {
               </div>
               {job.location && <p className="job-location">📍 {job.location}</p>}
               <p className="job-date">
-                Publicado em {new Date(job.createdAt).toLocaleDateString('pt-BR')}
+                Publicado em {new Date(job.created_at).toLocaleDateString('pt-BR')}
               </p>
             </div>
           ))}

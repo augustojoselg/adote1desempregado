@@ -2,13 +2,12 @@ import { useStore } from '../store'
 import './Stats.css'
 
 export default function Stats() {
-  const { getStats } = useStore()
-  const stats = getStats()
+  const { stats } = useStore()
 
   const statItems = [
     { label: 'Mentores', value: stats.mentors, icon: '🤝' },
     { label: 'Profissionais', value: stats.professionals, icon: '👤' },
-    { label: 'Vagas', value: stats.totalJobs, icon: '💼' },
+    { label: 'Vagas', value: stats.jobs, icon: '💼' },
     { label: 'Recolocados', value: stats.recolocados, icon: '✨' },
   ]
 

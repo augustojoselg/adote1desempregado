@@ -9,26 +9,31 @@ const ROLES = [
   { id: 'Empresa', icon: '🏢', label: 'Empresa', desc: 'Quem fortalece a corrente' },
 ]
 
-export default function Entry() {
+export default function Entry({ onShowPrivacy }) {
   const [name, setName] = useState('')
   const [selectedRole, setSelectedRole] = useState(null)
+  const [city, setCity] = useState('')
+  const [consent, setConsent] = useState(false)
   const [error, setError] = useState('')
-  const { createUser } = useStore()
+  const [loading, setLoading] = useState(false)
+  const { signup } = useStore()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (!name.trim()) {
-      setError('Por favor, digite seu nome')
-      return
-    }
-    if (!selectedRole) {
-      setError('Escolha seu papel na corrente')
-      return
-    }
+    if (!name.trim()) return setError('Por favor, digite seu nome')
+    if (!selectedRole) return setError('Escolha seu papel na corrente')
+    if (!consent) return setError('É necessário aceitar a Política de Privacidade para se cadastrar')
 
-    createUser(name.trim(), selectedRole)
+    setLoading(true)
+    try {
+      await signup({ name: name.trim(), role: selectedRole, city: city.trim(), consent })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -57,6 +62,18 @@ export default function Entry() {
           </div>
 
           <div className="form-group">
+            <label htmlFor="city" className="label">Cidade (opcional)</label>
+            <input
+              id="city"
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Ex: São Paulo, SP"
+              className="input"
+            />
+          </div>
+
+          <div className="form-group">
             <label className="label">Qual é seu papel na corrente?</label>
             <div className="roles-grid">
               {ROLES.map((role) => (
@@ -74,15 +91,27 @@ export default function Entry() {
             </div>
           </div>
 
+          <label className="consent-check">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
+            <span>
+              Li e concordo com a{' '}
+              <button type="button" className="link-btn" onClick={onShowPrivacy}>
+                Política de Privacidade
+              </button>
+              . Sei que meu nome, cidade e demais dados do perfil ficarão visíveis para outras
+              pessoas da rede, e que posso exportar ou excluir meus dados quando quiser.
+            </span>
+          </label>
+
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="btn-submit">
-            Entrar na corrente
+          <button type="submit" className="btn-submit" disabled={loading}>
+            {loading ? 'Entrando...' : 'Entrar na corrente'}
           </button>
-
-          <p className="entry-privacy">
-            ⓘ Seu perfil será visível para outras pessoas da rede. Leia nossos <a href="#">termos de privacidade</a>.
-          </p>
         </form>
       </div>
     </div>
