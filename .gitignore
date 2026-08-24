@@ -4,3 +4,4 @@ backend/data/
 backend/.env
 app/.env
 *.log
+*:Zone.Identifier
