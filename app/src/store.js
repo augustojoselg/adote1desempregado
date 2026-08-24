@@ -1,111 +1,105 @@
 import { create } from 'zustand'
+import { api, getToken, setToken } from './api'
 
-const STORAGE_KEY = 'adote-desempregado-data'
-
-const loadFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : null
-  } catch {
-    return null
-  }
-}
-
-const initialState = loadFromStorage() || {
+export const useStore = create((set, get) => ({
   currentUser: null,
+  authChecked: false,
   users: [],
   elos: [],
   jobs: [],
-}
+  stats: { mentors: 0, professionals: 0, companies: 0, jobs: 0, recolocados: 0 },
+  error: null,
 
-export const useStore = create((set, get) => ({
-  ...initialState,
-
-  setCurrentUser: (user) => {
-    set({ currentUser: user })
-    persistState(get())
+  // Called once on app load — if we have a token, confirm it's still valid.
+  restoreSession: async () => {
+    const token = getToken()
+    if (!token) {
+      set({ authChecked: true })
+      return
+    }
+    try {
+      const { user } = await api.me()
+      set({ currentUser: user, authChecked: true })
+    } catch {
+      setToken(null)
+      set({ currentUser: null, authChecked: true })
+    }
   },
 
-  createUser: (name, role) => {
-    const user = {
-      id: Date.now().toString(),
-      name,
-      role,
-      bio: '',
-      city: '',
-      linkedin: '',
-      createdAt: new Date().toISOString(),
-    }
-    set((state) => ({ users: [...state.users, user], currentUser: user }))
-    persistState(get())
+  // signup requires explicit consent — enforced again here as a safety net,
+  // even though the backend also rejects consent !== true.
+  signup: async ({ name, role, city, bio, linkedin, consent }) => {
+    if (!consent) throw new Error('É necessário aceitar a Política de Privacidade para se cadastrar.')
+    const { user, token } = await api.signup({ name, role, city, bio, linkedin, consent })
+    setToken(token)
+    set({ currentUser: user })
     return user
   },
 
-  updateUser: (updates) => {
-    set((state) => ({
-      currentUser: { ...state.currentUser, ...updates },
-      users: state.users.map((u) => (u.id === state.currentUser.id ? { ...u, ...updates } : u)),
-    }))
-    persistState(get())
+  logout: () => {
+    setToken(null)
+    set({ currentUser: null, users: [], elos: [], jobs: [] })
   },
 
-  createElo: (fromUserId, toUserId) => {
-    const state = get()
-    const exists = state.elos.some(
-      (e) => (e.fromUserId === fromUserId && e.toUserId === toUserId) ||
-             (e.fromUserId === toUserId && e.toUserId === fromUserId)
-    )
-    if (exists) return null
+  updateProfile: async (updates) => {
+    const { user } = await api.updateAccount(updates)
+    set({ currentUser: user })
+    return user
+  },
 
-    const elo = {
-      id: Date.now().toString(),
-      fromUserId,
-      toUserId,
-      status: 'Combinado',
-      createdAt: new Date().toISOString(),
-    }
-    set((state) => ({ elos: [...state.elos, elo] }))
-    persistState(get())
+  // Right to data portability — downloads everything we hold as a JSON file.
+  exportMyData: async () => {
+    const res = await api.exportAccount()
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'meus-dados-adote-um-desempregado.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+
+  // Right to erasure — anonymizes the account server-side and logs the user out.
+  deleteAccount: async () => {
+    await api.deleteAccount()
+    setToken(null)
+    set({ currentUser: null, users: [], elos: [], jobs: [] })
+  },
+
+  loadUsers: async () => {
+    const { users } = await api.listUsers()
+    set({ users })
+  },
+
+  loadStats: async () => {
+    const stats = await api.getStats()
+    set({ stats })
+  },
+
+  createElo: async (targetUserId) => {
+    const { elo } = await api.createElo(targetUserId)
+    await get().loadMyElos()
     return elo
   },
 
-  updateEloStatus: (eloId, status) => {
-    set((state) => ({
-      elos: state.elos.map((e) => (e.id === eloId ? { ...e, status } : e)),
-    }))
-    persistState(get())
+  loadMyElos: async () => {
+    const { elos } = await api.myElos()
+    set({ elos })
   },
 
-  postJob: (company, title, location, link) => {
-    const job = {
-      id: Date.now().toString(),
-      company,
-      title,
-      location,
-      link,
-      postedBy: get().currentUser.id,
-      createdAt: new Date().toISOString(),
-    }
-    set((state) => ({ jobs: [...state.jobs, job] }))
-    persistState(get())
+  updateEloStatus: async (eloId, status) => {
+    await api.updateEloStatus(eloId, status)
+    await get().loadMyElos()
+  },
+
+  loadJobs: async () => {
+    const { jobs } = await api.listJobs()
+    set({ jobs })
+  },
+
+  postJob: async (payload) => {
+    const { job } = await api.postJob(payload)
+    await get().loadJobs()
     return job
   },
-
-  getStats: () => {
-    const state = get()
-    const mentors = state.users.filter((u) => u.role === 'Mentor').length
-    const professionals = state.users.filter((u) => u.role === 'Profissional').length
-    const totalJobs = state.jobs.length
-    const recolocados = state.elos.filter((e) => e.status === 'Recolocado').length
-    return { mentors, professionals, totalJobs, recolocados }
-  },
 }))
-
-function persistState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    currentUser: state.currentUser,
-    users: state.users,
-    elos: state.elos,
-    jobs: state.jobs,
-  }))
-}

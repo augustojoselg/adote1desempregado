@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../store'
 import Directory from '../components/Directory'
 import JobBoard from '../components/JobBoard'
 import EloTracker from '../components/EloTracker'
 import Stats from '../components/Stats'
+import AccountPanel from '../components/AccountPanel'
 import './Dashboard.css'
 
 const TABS = [
@@ -11,11 +12,19 @@ const TABS = [
   { id: 'directory', label: 'Diretório', icon: '👥' },
   { id: 'jobs', label: 'Vagas', icon: '💼' },
   { id: 'meus-elos', label: 'Meus Elos', icon: '🔗' },
+  { id: 'account', label: 'Minha conta', icon: '⚙️' },
 ]
 
-export default function Dashboard() {
+export default function Dashboard({ onShowPrivacy }) {
   const [activeTab, setActiveTab] = useState('stats')
-  const { currentUser } = useStore()
+  const { loadStats, loadUsers, loadJobs, loadMyElos } = useStore()
+
+  useEffect(() => {
+    loadStats()
+    loadUsers()
+    loadJobs()
+    loadMyElos()
+  }, [loadStats, loadUsers, loadJobs, loadMyElos])
 
   return (
     <div className="dashboard">
@@ -37,6 +46,7 @@ export default function Dashboard() {
         {activeTab === 'directory' && <Directory />}
         {activeTab === 'jobs' && <JobBoard />}
         {activeTab === 'meus-elos' && <EloTracker />}
+        {activeTab === 'account' && <AccountPanel onShowPrivacy={onShowPrivacy} />}
       </main>
     </div>
   )

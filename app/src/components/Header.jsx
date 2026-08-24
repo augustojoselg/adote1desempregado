@@ -3,11 +3,7 @@ import { useStore } from '../store'
 import './Header.css'
 
 export default function Header() {
-  const { currentUser, setCurrentUser } = useStore()
-
-  const handleLogout = () => {
-    setCurrentUser(null)
-  }
+  const { currentUser, logout } = useStore()
 
   if (!currentUser) return null
 
@@ -24,7 +20,7 @@ export default function Header() {
         <div className="header-user">
           <span className="user-role">{currentUser.role}</span>
           <span className="user-name">{currentUser.name}</span>
-          <button className="btn-logout" onClick={handleLogout} title="Sair">
+          <button className="btn-logout" onClick={logout} title="Sair">
             ✕
           </button>
         </div>

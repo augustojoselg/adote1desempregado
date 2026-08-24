@@ -1,0 +1,36 @@
+.privacy-card {
+  max-width: 640px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.privacy-body {
+  text-align: left;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.privacy-body h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  color: var(--green-dark);
+}
+
+.privacy-body p {
+  margin-bottom: 10px;
+}
+
+.privacy-body ul {
+  margin: 8px 0 8px 20px;
+}
+
+.privacy-body li {
+  margin-bottom: 6px;
+}
+
+.privacy-body a {
+  color: var(--green);
+}

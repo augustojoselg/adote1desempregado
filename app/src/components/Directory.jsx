@@ -15,10 +15,11 @@ export default function Directory() {
     return false
   })
 
-  const handleConnect = (toUserId) => {
-    const elo = createElo(currentUser.id, toUserId)
-    if (!elo) {
-      alert('Você já tem uma conexão com essa pessoa!')
+  const handleConnect = async (toUserId) => {
+    try {
+      await createElo(toUserId)
+    } catch (err) {
+      alert(err.message || 'Você já tem uma conexão com essa pessoa!')
     }
   }
 

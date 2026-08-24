@@ -5,26 +5,17 @@ import './EloTracker.css'
 const STATUSES = ['Combinado', 'Em contato', 'Entrevistas', 'Recolocado']
 
 export default function EloTracker() {
-  const { elos, users, currentUser, updateEloStatus } = useStore()
-
-  const myElos = elos.filter(
-    (e) => e.fromUserId === currentUser.id || e.toUserId === currentUser.id
-  )
-
-  const getOtherUser = (elo) => {
-    const otherId = elo.fromUserId === currentUser.id ? elo.toUserId : elo.fromUserId
-    return users.find((u) => u.id === otherId)
-  }
+  const { elos, currentUser, updateEloStatus } = useStore()
 
   const canAdvance = (elo) => {
     const statusIndex = STATUSES.indexOf(elo.status)
     return statusIndex < STATUSES.length - 1
   }
 
-  const handleAdvance = (eloId, currentStatus) => {
+  const handleAdvance = async (eloId, currentStatus) => {
     const statusIndex = STATUSES.indexOf(currentStatus)
     if (statusIndex < STATUSES.length - 1) {
-      updateEloStatus(eloId, STATUSES[statusIndex + 1])
+      await updateEloStatus(eloId, STATUSES[statusIndex + 1])
     }
   }
 
@@ -35,7 +26,7 @@ export default function EloTracker() {
         <p>Acompanhe o progresso de suas conexões</p>
       </div>
 
-      {myElos.length === 0 ? (
+      {elos.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">🔗</div>
           <h3>Ainda não há elos ativos</h3>
@@ -43,10 +34,10 @@ export default function EloTracker() {
         </div>
       ) : (
         <div className="elos-list">
-          {myElos.map((elo) => {
-            const otherUser = getOtherUser(elo)
-            if (!otherUser) return null
-
+          {elos.map((elo) => {
+            const isMentor = elo.mentor_id === currentUser.id
+            const otherName = isMentor ? elo.professional_name : elo.mentor_name
+            const otherRole = isMentor ? 'Profissional' : 'Mentor'
             const statusIndex = STATUSES.indexOf(elo.status)
 
             return (
@@ -58,14 +49,13 @@ export default function EloTracker() {
                   </div>
                   <EloIcon size={32} />
                   <div className="user-block">
-                    <div className="user-avatar-small">{otherUser.name[0]}</div>
-                    <div className="user-label-small">{otherUser.role}</div>
+                    <div className="user-avatar-small">{otherName?.[0]}</div>
+                    <div className="user-label-small">{otherRole}</div>
                   </div>
                 </div>
 
                 <div className="elo-user-info">
-                  <h4>{otherUser.name}</h4>
-                  {otherUser.bio && <p>{otherUser.bio}</p>}
+                  <h4>{otherName}</h4>
                 </div>
 
                 <div className="elo-status-tracker">
@@ -91,9 +81,9 @@ export default function EloTracker() {
 
                 {elo.status === 'Recolocado' && (
                   <div className="success-message">
-                    ✨ {currentUser.role === 'Mentor'
-                      ? `Que alegria! ${otherUser.name} foi recolocado!`
-                      : `Parabéns! Você foi recolocado com apoio de ${otherUser.name}!`}
+                    ✨ {isMentor
+                      ? `Que alegria! ${otherName} foi recolocado!`
+                      : `Parabéns! Você foi recolocado com apoio de ${otherName}!`}
                   </div>
                 )}
               </div>
