@@ -1,0 +1,96 @@
+name: emprego-social
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: emprego
+      POSTGRES_DB: emprego
+      POSTGRES_HOST_AUTH_METHOD: trust # isolated local development only
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U emprego -d emprego"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    image: ${IMAGE_PREFIX:-emprego-social}/api:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      NODE_ENV: development
+      PGHOST: postgres
+      PGUSER: emprego
+      PGDATABASE: emprego
+      PGSSL: disable
+    command: [node, src/migrate.js]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  test:
+    profiles: [test]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: test
+    environment:
+      NODE_ENV: test
+      PGHOST: postgres
+      PGUSER: emprego
+      PGDATABASE: emprego
+      PGSSL: disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    image: ${IMAGE_PREFIX:-emprego-social}/api:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      PORT: "3001"
+      NODE_ENV: development
+      PGHOST: postgres
+      PGUSER: emprego
+      PGDATABASE: emprego
+      PGSSL: disable
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080}
+      TRUST_PROXY_HOPS: "1"
+      SESSION_COOKIE_SECURE: "false" # HTTP local only; cloud deployment uses true.
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+  web:
+    image: ${IMAGE_PREFIX:-emprego-social}/web:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    environment:
+      PORT: "8080"
+      API_UPSTREAM: http://api:3001
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+volumes:
+  postgres-data:

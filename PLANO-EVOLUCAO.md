@@ -104,3 +104,15 @@ Não concluído: regras de negócio e hospedagem; PostgreSQL e reconciliação d
 Decisões necessárias para implantação: provedor de identidade, hospedagem, banco e comunicação; domínio e origem da API; responsáveis pela aprovação de empresas e privacidade; retenção, RPO/RTO e volume esperado. Não houve deploy ou alteração de produção.
 
 Validação executada: `backend/npm ci`, `backend/npm test` (integração aprovada), `app/npm ci`, `app/npm run build` (aprovado) e `git diff --check` (sem erros). Não foram executados testes de produção, carga, restauração ou acessibilidade.
+
+### Containers — entrega local
+
+Adicionados Dockerfiles em estágios para API e frontend, proxy Nginx configurável em runtime, Compose com persistência SQLite, healthchecks, usuários sem root e filesystem somente leitura. API fecha conexões e banco no desligamento com prazo máximo. Testes da API aprovados em Linux ARM64 e AMD64; teste funcional do Compose aprovou proxy e persistência após recriação. Instruções em DOCKER.md. Esta entrega cobre empacotamento local da etapa 5; Kubernetes, homologação, banco compartilhado, restauração, carga e rollback continuam pendentes.
+
+### PostgreSQL e preparação Azure
+
+O runtime SQLite foi substituído por PostgreSQL 17; rotas usam operações assíncronas, transações e restrição única de elos. Migrações versionadas explícitas com advisory lock; exportação/importação legada com contagens e transação. Cookies HttpOnly e Secure em produção, validação de origem para CSRF e ausência de token no JSON de produção. Bicep preparado com PostgreSQL privado/Entra sem senha, identidades separadas, Key Vault restrito e Container Apps Consumption. Consulte infra/azure/README.md para custos e procedimento. Testes locais PostgreSQL e persistência aprovados. Ainda faltam validação da identidade na nuvem, restauração, rollback, login verificável/recuperável e demais critérios de produção.
+
+### Implantação autorizada e operação — 10/10/2026
+
+Provisionamento autorizado pelo responsável. Dependências da API e frontend corrigidas; auditorias sem vulnerabilidades conhecidas na consulta; Vite 8 e build aprovados. Política exibida alinhada à visibilidade, exclusão e retenção efetivas, versão 1.1.0. Respostas da API usam no-store; frontend trata falhas nas operações de conta e elos. CI com actions fixadas por SHA valida testes, build e auditoria, sem credenciais Azure/GitHub na configuração. Guias de usuários, administradores e plano de adoção em docs/. Situação real da implantação e limitações em infra/azure/IMPLANTACAO.md; ainda não há declaração de produção pública pronta.

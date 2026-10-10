@@ -1,11 +1,11 @@
 # Adote um Desempregado — App Web
 
-React + Vite PWA para a corrente voluntária de recolocação profissional. Consome a API em `../backend` — não funciona mais isolado com apenas `localStorage`.
+React 18 + Vite 8 para a corrente voluntária de recolocação profissional. Requer Node 24, validado nos containers, e a API em `../backend`.
 
 ## Instalação
 
 ```bash
-npm install
+npm ci
 cp .env.example .env
 ```
 
@@ -19,7 +19,7 @@ Com o backend já rodando (veja `../backend/README.md`):
 npm run dev
 ```
 
-Abre em `http://localhost:5173` (padrão do Vite).
+Abre em `http://localhost:3000`, conforme `vite.config.js`. Configure `FRONTEND_ORIGIN=http://localhost:3000` na API para permitir cookies e operações de escrita.
 
 ## Build
 
@@ -27,11 +27,11 @@ Abre em `http://localhost:5173` (padrão do Vite).
 npm run build
 ```
 
-Saída em `dist/`. Antes de publicar em produção, configure `VITE_API_URL` apontando para a URL pública da API.
+Saída em `dist/`. No container, `VITE_API_URL=/api` mantém frontend e API na mesma origem; o Nginx encaminha requisições ao backend interno. Não exponha a API diretamente nem coloque segredos em variáveis `VITE_*`.
 
 ## Estrutura
 
-- `src/api.js` — cliente HTTP que fala com o backend, guarda o token de sessão
+- `src/api.js` — cliente HTTP com cookie HttpOnly gerenciado pelo servidor; não armazena tokens no navegador
 - `src/components/` — componentes reutilizáveis (Header, Stats, Directory, JobBoard, EloTracker, AccountPanel)
 - `src/pages/` — telas (Entry, Dashboard, Privacy)
 - `src/store.js` — estado global com Zustand, delega toda persistência para a API
@@ -51,3 +51,5 @@ Saída em `dist/`. Antes de publicar em produção, configure `VITE_API_URL` apo
 ✅ PWA (offline fallback, manifest)
 ✅ Responsivo mobile-first
 ✅ Paleta visual TISL + EmpregoSocial
+
+O cadastro ainda não tem login recuperável nem validação de empresa. Uso restrito até concluir os critérios do [plano de uso](../docs/PLANO-USO.md). A PWA armazena apenas o shell estático; dados autenticados exigem conexão.

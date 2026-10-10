@@ -26,7 +26,13 @@ export default function AccountPanel({ onShowPrivacy }) {
   }
 
   const handleDelete = async () => {
-    await deleteAccount()
+    try { await deleteAccount() }
+    catch (err) { setMessage(err.message) }
+  }
+
+  const handleExport = async () => {
+    try { await exportMyData() }
+    catch (err) { setMessage(err.message) }
   }
 
   return (
@@ -60,7 +66,7 @@ export default function AccountPanel({ onShowPrivacy }) {
         <h3>Seus dados</h3>
         <p>Você pode baixar uma cópia de tudo que temos sobre você, ou excluir seu perfil permanentemente.</p>
         <div className="account-lgpd-actions">
-          <button type="button" className="btn-outline" onClick={exportMyData}>
+          <button type="button" className="btn-outline" onClick={handleExport}>
             Baixar meus dados
           </button>
           <button type="button" className="link-btn" onClick={onShowPrivacy}>

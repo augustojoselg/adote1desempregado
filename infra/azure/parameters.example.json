@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "centralus"
+    },
+    "prefix": {
+      "value": "adote1p"
+    },
+    "acrName": {
+      "value": "adote1"
+    },
+    "apiImage": {
+      "value": "adote1-emajexd8e5cvf4b9.azurecr.io/emprego-social/api@sha256:SUBSTITUA_PELO_DIGEST_POSTGRESQL"
+    },
+    "webImage": {
+      "value": "adote1-emajexd8e5cvf4b9.azurecr.io/emprego-social/web@sha256:SUBSTITUA_PELO_DIGEST_ATUALIZADO"
+    },
+    "operatorIpv4": {
+      "value": "SUBSTITUA_PELO_IPV4_DO_OPERADOR"
+    },
+    "operatorObjectId": {
+      "value": "SUBSTITUA_PELO_OBJECT_ID_ENTRA"
+    },
+    "enableApplication": {
+      "value": false
+    },
+    "minReplicas": {
+      "value": 0
+    },
+    "runtimeSecrets": {
+      "value": []
+    }
+  }
+}

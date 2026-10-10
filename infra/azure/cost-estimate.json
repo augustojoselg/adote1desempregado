@@ -1,0 +1,106 @@
+{
+  "source": "https://prices.azure.com/api/retail/prices",
+  "checked_at": "2026-10-10T20:58:33.886552+00:00",
+  "region": "centralus",
+  "currency": "USD",
+  "assumptions": {
+    "hours_per_month": 730,
+    "days_per_month": 30,
+    "postgres_storage_gb": 32,
+    "postgres_compute_usd": 14.023,
+    "postgres_storage_usd": 4.16,
+    "acr_standard_usd": 19.998,
+    "acr_basic_usd": 4.998,
+    "fixed_subtotal_current_acr_usd": 23.181,
+    "fixed_subtotal_basic_acr_usd": 23.181,
+    "excludes": [
+      "Container Apps compute and requests beyond free allowance",
+      "networking/public IP",
+      "Log Analytics",
+      "Key Vault operations",
+      "backup excess",
+      "egress",
+      "taxes and exchange rate"
+    ],
+    "current_acr_sku": "Basic"
+  },
+  "meters": [
+    {
+      "serviceName": "Azure Database for PostgreSQL",
+      "productName": "Azure Database for PostgreSQL Flexible Server Burstable BS Series Compute",
+      "skuName": "B1MS",
+      "meterName": "B1MS",
+      "armSkuName": "B1MS",
+      "unitOfMeasure": "1 Hour",
+      "retailPrice": 0.01921,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2021-12-01T00:00:00Z"
+    },
+    {
+      "serviceName": "Azure Database for PostgreSQL",
+      "productName": "Azure Database for PostgreSQL Flex Server Storage",
+      "skuName": "Storage",
+      "meterName": "Storage Data Stored",
+      "armSkuName": "Storage",
+      "unitOfMeasure": "1 GB/Month",
+      "retailPrice": 0.13,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2021-06-01T00:00:00Z"
+    },
+    {
+      "serviceName": "Container Registry",
+      "productName": "Container Registry",
+      "skuName": "Basic",
+      "meterName": "Basic Registry Unit",
+      "armSkuName": "",
+      "unitOfMeasure": "1/Day",
+      "retailPrice": 0.1666,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2018-01-01T00:00:00Z"
+    },
+    {
+      "serviceName": "Container Registry",
+      "productName": "Container Registry",
+      "skuName": "Standard",
+      "meterName": "Standard Registry Unit",
+      "armSkuName": "",
+      "unitOfMeasure": "1/Day",
+      "retailPrice": 0.6666,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2018-01-01T00:00:00Z"
+    },
+    {
+      "serviceName": "Key Vault",
+      "productName": "Key Vault",
+      "skuName": "Standard",
+      "meterName": "Operations",
+      "armSkuName": "",
+      "unitOfMeasure": "10K",
+      "retailPrice": 0.03,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2015-08-01T00:00:00Z"
+    },
+    {
+      "serviceName": "Azure Container Apps",
+      "productName": "Azure Container Apps",
+      "skuName": "Standard",
+      "meterName": "Standard vCPU Active Usage",
+      "armSkuName": "",
+      "unitOfMeasure": "1 Second",
+      "retailPrice": 2.4e-05,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2022-06-01T00:00:00Z"
+    },
+    {
+      "serviceName": "Azure Container Apps",
+      "productName": "Azure Container Apps",
+      "skuName": "Standard",
+      "meterName": "Standard Memory Active Usage",
+      "armSkuName": "",
+      "unitOfMeasure": "1 GiB Second",
+      "retailPrice": 3e-06,
+      "currencyCode": "USD",
+      "effectiveStartDate": "2022-06-01T00:00:00Z"
+    }
+  ]
+}

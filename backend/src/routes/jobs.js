@@ -8,11 +8,11 @@ import { httpUrl, pagination } from '../lib/validation.js';
 const router = Router();
 
 // GET /api/jobs — public within the network (auth required, same reasoning as directory)
-router.get('/', requireAuth, (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const parsed = pagination.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: 'Paginação inválida.' });
   const { limit, offset } = parsed.data;
-  const rows = db
+  const rows = await db
     .prepare(
       `SELECT jobs.*, users.name as posted_by_name FROM jobs
        JOIN users ON users.id = jobs.posted_by
@@ -30,7 +30,7 @@ const createSchema = z.object({
 });
 
 // POST /api/jobs — only companies can post
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   if (req.user.role !== 'Empresa') {
     return res.status(403).json({ error: 'Apenas contas do tipo Empresa podem publicar vagas.' });
   }
@@ -39,7 +39,7 @@ router.post('/', requireAuth, (req, res) => {
 
   const id = generateId();
   const { company, title, location, link } = parsed.data;
-  db.prepare('INSERT INTO jobs (id, company, title, location, link, posted_by) VALUES (?, ?, ?, ?, ?, ?)').run(
+  await db.prepare('INSERT INTO jobs (id, company, title, location, link, posted_by) VALUES (?, ?, ?, ?, ?, ?)').run(
     id,
     company,
     title,
@@ -47,7 +47,7 @@ router.post('/', requireAuth, (req, res) => {
     link,
     req.user.id
   );
-  const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+  const job = await db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
   res.status(201).json({ job });
 });
 

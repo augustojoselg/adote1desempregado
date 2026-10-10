@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore } from '../store'
 import EloIcon from './EloIcon'
 import './EloTracker.css'
@@ -6,6 +7,7 @@ const STATUSES = ['Combinado', 'Em contato', 'Entrevistas', 'Recolocado']
 
 export default function EloTracker() {
   const { elos, currentUser, updateEloStatus } = useStore()
+  const [error, setError] = useState('')
 
   const canAdvance = (elo) => {
     const statusIndex = STATUSES.indexOf(elo.status)
@@ -15,7 +17,9 @@ export default function EloTracker() {
   const handleAdvance = async (eloId, currentStatus) => {
     const statusIndex = STATUSES.indexOf(currentStatus)
     if (statusIndex < STATUSES.length - 1) {
-      await updateEloStatus(eloId, STATUSES[statusIndex + 1])
+      setError('')
+      try { await updateEloStatus(eloId, STATUSES[statusIndex + 1]) }
+      catch (err) { setError(err.message) }
     }
   }
 
@@ -26,6 +30,7 @@ export default function EloTracker() {
         <p>Acompanhe o progresso de suas conexões</p>
       </div>
 
+      {error && <p role="alert" className="error-message">{error}</p>}
       {elos.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">🔗</div>

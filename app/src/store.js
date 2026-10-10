@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, getToken, setToken } from './api'
+import { api } from './api'
 
 export const useStore = create((set, get) => ({
   currentUser: null,
@@ -10,18 +10,12 @@ export const useStore = create((set, get) => ({
   stats: { mentors: 0, professionals: 0, companies: 0, jobs: 0, recolocados: 0 },
   error: null,
 
-  // Called once on app load — if we have a token, confirm it's still valid.
+  // Restore the server-managed HttpOnly session on app load.
   restoreSession: async () => {
-    const token = getToken()
-    if (!token) {
-      set({ authChecked: true })
-      return
-    }
     try {
       const { user } = await api.me()
       set({ currentUser: user, authChecked: true })
     } catch {
-      setToken(null)
       set({ currentUser: null, authChecked: true })
     }
   },
@@ -30,8 +24,7 @@ export const useStore = create((set, get) => ({
   // even though the backend also rejects consent !== true.
   signup: async ({ name, role, city, bio, linkedin, consent }) => {
     if (!consent) throw new Error('É necessário aceitar a Política de Privacidade para se cadastrar.')
-    const { user, token } = await api.signup({ name, role, city, bio, linkedin, consent })
-    setToken(token)
+    const { user } = await api.signup({ name, role, city, bio, linkedin, consent })
     set({ currentUser: user })
     return user
   },
@@ -43,7 +36,6 @@ export const useStore = create((set, get) => ({
       set({ error: error.message })
       return
     }
-    setToken(null)
     set({ currentUser: null, users: [], elos: [], jobs: [] })
   },
 
@@ -68,7 +60,6 @@ export const useStore = create((set, get) => ({
   // Right to erasure — anonymizes the account server-side and logs the user out.
   deleteAccount: async () => {
     await api.deleteAccount()
-    setToken(null)
     set({ currentUser: null, users: [], elos: [], jobs: [] })
   },
 
