@@ -1,74 +1,78 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import 'dotenv/config';
+import pg from 'pg';
+import { ManagedIdentityCredential } from '@azure/identity';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'adote.db');
-
-import fs from 'fs';
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-
-export const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('Mentor','Profissional','Empresa')),
-  bio TEXT DEFAULT '',
-  city TEXT DEFAULT '',
-  linkedin TEXT DEFAULT '',
-  token_hash TEXT NOT NULL,
-  consent_given INTEGER NOT NULL DEFAULT 0,
-  consent_at TEXT,
-  privacy_policy_version TEXT,
-  anonymized_at TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS elos (
-  id TEXT PRIMARY KEY,
-  mentor_id TEXT NOT NULL,
-  professional_id TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Combinado' CHECK(status IN ('Combinado','Em contato','Entrevistas','Recolocado')),
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (mentor_id) REFERENCES users(id),
-  FOREIGN KEY (professional_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS jobs (
-  id TEXT PRIMARY KEY,
-  company TEXT NOT NULL,
-  title TEXT NOT NULL,
-  location TEXT DEFAULT '',
-  link TEXT NOT NULL,
-  posted_by TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (posted_by) REFERENCES users(id)
-);
-
--- Append-only log so we can PROVE consent was given/revoked if ever challenged (LGPD Art. 8 paragraph 2)
-CREATE TABLE IF NOT EXISTS consent_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK(action IN ('given','revoked','export_requested','deletion_requested')),
-  policy_version TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_elos_mentor ON elos(mentor_id);
-CREATE INDEX IF NOT EXISTS idx_elos_professional ON elos(professional_id);
-CREATE INDEX IF NOT EXISTS idx_jobs_posted_by ON jobs(posted_by);
-`);
-
-// Additive migration gives existing sessions a bounded grace period.
-if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === 'session_expires_at')) {
-  db.transaction(() => {
-    db.exec("ALTER TABLE users ADD COLUMN session_expires_at TEXT");
-    db.exec("UPDATE users SET session_expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+7 days')");
-    db.pragma('user_version = 1');
-  })();
+// No database credentials are accepted in URLs or logged.
+const identityAuth = process.env.PG_AUTH === 'entra';
+const schema = process.env.PGSCHEMA || 'public';
+if (!/^[a-z_][a-z0-9_]*$/.test(schema)) throw new Error('PGSCHEMA inválido.');
+if (process.env.NODE_ENV === 'production' && !identityAuth) {
+  throw new Error('Produção exige PG_AUTH=entra, sem senha estática.');
 }
+const credential = identityAuth ? new ManagedIdentityCredential(
+  process.env.AZURE_CLIENT_ID ? { clientId: process.env.AZURE_CLIENT_ID } : {},
+) : null;
+const pool = new pg.Pool({
+  host: process.env.PGHOST || '127.0.0.1',
+  port: Number(process.env.PGPORT || 5432),
+  database: process.env.PGDATABASE || 'emprego',
+  user: process.env.PGUSER || 'emprego',
+  password: identityAuth
+    ? async () => (await credential.getToken('https://ossrdbms-aad.database.windows.net/.default')).token
+    : process.env.PGPASSWORD,
+  ssl: identityAuth || process.env.PGSSL !== 'disable' ? { rejectUnauthorized: true } : false,
+  max: Number(process.env.PGPOOL_MAX || 5),
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  options: `-c search_path=${schema} -c statement_timeout=15000`,
+});
+pool.on('error', () => console.error(JSON.stringify({ event: 'database_connection_error' })));
+const transactions = new AsyncLocalStorage();
+
+// Small compatibility layer keeps SQL parameters out of string interpolation.
+export function bind(sql, args) {
+  let index = 0;
+  if (args.length === 1 && args[0] && Object.getPrototypeOf(args[0]) === Object.prototype) {
+    const values = [];
+    const positions = new Map();
+    const text = sql.replace(/@([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name) => {
+      if (!Object.hasOwn(args[0], name)) throw new Error('Parâmetro SQL ausente.');
+      if (!positions.has(name)) { values.push(args[0][name]); positions.set(name, values.length); }
+      return `$${positions.get(name)}`;
+    });
+    return { text, values };
+  }
+  return { text: sql.replace(/\?/g, () => `$${++index}`), values: args };
+}
+async function query(sql, args = []) {
+  const target = transactions.getStore() || pool;
+  return target.query(bind(sql, args));
+}
+export const db = {
+  prepare(sql) {
+    return {
+      get: async (...args) => (await query(sql, args)).rows[0],
+      all: async (...args) => (await query(sql, args)).rows,
+      run: async (...args) => ({ changes: (await query(sql, args)).rowCount }),
+    };
+  },
+  exec: sql => query(sql),
+  transaction(fn) {
+    return async (...args) => {
+      if (transactions.getStore()) throw new Error('Transações aninhadas não são suportadas.');
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const result = await transactions.run(client, () => fn(...args));
+        await client.query('COMMIT');
+        return result;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally { client.release(); }
+    };
+  },
+  close: () => pool.end(),
+};
 export default db;

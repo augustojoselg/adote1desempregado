@@ -17,13 +17,12 @@ const TABS = [
 
 export default function Dashboard({ onShowPrivacy }) {
   const [activeTab, setActiveTab] = useState('stats')
+  const [error, setError] = useState('')
   const { loadStats, loadUsers, loadJobs, loadMyElos } = useStore()
 
   useEffect(() => {
-    loadStats()
-    loadUsers()
-    loadJobs()
-    loadMyElos()
+    Promise.all([loadStats(), loadUsers(), loadJobs(), loadMyElos()])
+      .catch((err) => setError(err.message))
   }, [loadStats, loadUsers, loadJobs, loadMyElos])
 
   return (
@@ -42,6 +41,7 @@ export default function Dashboard({ onShowPrivacy }) {
       </nav>
 
       <main className="dashboard-content wrap">
+        {error && <p role="alert" className="error-message">{error}</p>}
         {activeTab === 'stats' && <Stats />}
         {activeTab === 'directory' && <Directory />}
         {activeTab === 'jobs' && <JobBoard />}

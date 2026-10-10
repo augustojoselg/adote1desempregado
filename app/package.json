@@ -10,16 +10,16 @@
     "format": "prettier --write src"
   },
   "dependencies": {
+    "lucide-react": "^0.263.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "zustand": "^4.4.0",
-    "lucide-react": "^0.263.1"
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.0",
-    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^8.54.0",
     "eslint-plugin-react": "^7.33.2",
-    "prettier": "^3.1.0"
+    "prettier": "^3.1.0",
+    "vite": "^8.3.4"
   }
 }

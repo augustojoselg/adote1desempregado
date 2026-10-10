@@ -1,69 +1,31 @@
-# Backend — Adote um Desempregado
+# API — Emprego Social
 
-API em Node.js + Express + SQLite (via `better-sqlite3`). Substitui o antigo armazenamento em `localStorage` do frontend por um banco de dados real e compartilhado entre todos os usuários.
+Express + PostgreSQL 17. Não há mais banco SQLite em runtime.
 
-## Rodando localmente
+## Desenvolvimento e testes
 
-```bash
-cd backend
-npm ci
-cp .env.example .env
-npm run dev
-```
+Na raiz: `docker compose up -d --build --wait`. O Compose cria PostgreSQL sem porta publicada, executa a migração e inicia API e frontend. O modo trust do banco é exclusivo da rede local de desenvolvimento; não usar este Compose em nuvem.
 
-O servidor sobe em `http://localhost:3001` por padrão. `npm run dev` reinicia automaticamente a cada alteração (usa `node --watch`). Para iniciar sem recarga automática, use `npm start`. Produção depende das etapas operacionais do plano.
+Testes: `docker compose --profile test run --build --rm test`. Eles usam schemas temporários distintos no PostgreSQL e verificam autorização, transações, migração, cookies e CSRF.
 
-O banco SQLite é criado automaticamente em `backend/data/adote.db` na primeira execução — não precisa criar nada manualmente.
+Para Node instalado localmente: `npm ci`, configurar as variáveis de `.env.example`, executar `node src/migrate.js` e `npm run dev`. Esse caminho requer um PostgreSQL já disponível. Entrada em `src/start.js`; aplicação em `src/server.js`.
 
-## Variáveis de ambiente (`.env`)
+## Banco e produção
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `PORT` | `3001` | Porta da API |
-| `FRONTEND_ORIGIN` | `http://localhost:5173` | Origem permitida pelo CORS — em produção, aponte para o domínio real do app |
-| `DB_PATH` | `./data/adote.db` | Caminho do arquivo SQLite |
+`PG_AUTH=entra` usa ManagedIdentityCredential para obter um token em cada nova conexão do pool, com TLS e validação do certificado. `AZURE_CLIENT_ID` seleciona a identidade atribuída pelo usuário; host, database e usuário são configuração não secreta. Em produção, conexões com senha estática são rejeitadas.
 
-## Endpoints principais
+`src/migrate.js` aplica as migrações SQL em transação com advisory lock; a API não executa DDL ao iniciar. `src/bootstrap-db.js` cria a role Entra por OID e concede ao runtime somente operações nas tabelas da aplicação e uso das sequências. Esse bootstrap roda como job com identidade administrativa separada e não disponível à API.
 
-| Método | Rota | Auth | Descrição |
-|---|---|---|---|
-| POST | `/api/auth/signup` | — | Cadastro. Exige `consent: true` |
-| GET | `/api/auth/me` | ✓ | Confirma sessão |
-| GET | `/api/users` | ✓ | Diretório |
-| GET | `/api/users/stats` | — | Contadores públicos |
-| PATCH | `/api/account` | ✓ | Editar perfil (direito de retificação) |
-| GET | `/api/account/export` | ✓ | Baixar meus dados (portabilidade) |
-| DELETE | `/api/account` | ✓ | Excluir/anonimizar perfil (direito ao esquecimento) |
-| POST | `/api/elos` | ✓ | Criar conexão mentor↔profissional |
-| GET | `/api/elos/mine` | ✓ | Meus elos |
-| PATCH | `/api/elos/:id/status` | ✓ | Avançar etapa do elo |
-| GET | `/api/jobs` | ✓ | Listar vagas |
-| POST | `/api/jobs` | ✓ (Empresa) | Publicar vaga |
+Variáveis: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PG_AUTH`, `AZURE_CLIENT_ID`, `PGPOOL_MAX` (padrão 5), `FRONTEND_ORIGIN`, `TRUST_PROXY_HOPS`, `PORT`. `PGSSL=disable` só é utilizado no desenvolvimento; Entra exige validação TLS independentemente desse valor.
 
-Autenticação: envie o token retornado no signup como `Authorization: Bearer <token>`.
+## Sessões e proteção
 
-## Segurança já incluída
+Produção usa cookie HttpOnly, Secure, SameSite=Strict; o token não é retornado no JSON e bearer tokens são recusados. Escritas exigem Origin igual a FRONTEND_ORIGIN. O cliente usa credentials: include e não persiste credenciais em localStorage/sessionStorage. A sessão expira em sete dias e logout a revoga.
 
-- `helmet` para cabeçalhos de segurança
-- `express-rate-limit` (geral + limite mais rígido no signup, contra spam de cadastro)
-- CORS restrito à origem do frontend
-- Tokens de sessão nunca armazenados em texto puro — só o hash SHA-256
-- Validação de entrada com `zod` em todas as rotas que recebem dados
+Ainda falta login recuperável e identidade de usuário verificada. Não abrir para cadastro público antes de implementar esse fluxo e aprovação de empresas. A infraestrutura Azure proposta restringe o frontend ao IP do operador para homologação.
 
-## Limitações conhecidas / próximos passos para produção
+`GET /api/health` verifica o processo; `GET /api/ready` verifica conexão ao banco. Diretório e vagas usam limit de 1–100 (padrão 30) e offset. Bio e LinkedIn só são devolvidos ao titular. Elos avançam sequencialmente, com atualização condicional contra concorrência. Exclusão anonimiza perfil e remove vagas e elos em transação.
 
-1. **Autenticação por token simples, sem senha nem e-mail.** Quem tiver o token consegue agir como aquele usuário. Funciona para uma rede de confiança em fase inicial, mas para uso profissional em maior escala, recomenda-se evoluir para login por e-mail (magic link) ou OAuth.
-2. **SQLite é um arquivo local.** Ótimo para começar ou rodar em um único servidor, mas não escala para múltiplas instâncias/regiões. Se o volume crescer, migrar para Postgres (o schema em `src/db.js` é simples de portar).
-3. **Sem HTTPS embutido.** Em produção, rode atrás de um proxy reverso (nginx, Caddy, ou a plataforma de hospedagem) que termine TLS.
-4. **Sem backup automático do banco.** Configure backup periódico do arquivo `data/adote.db` (ou do Postgres, se migrar).
-5. **Sem envio de e-mail transacional** (confirmação de cadastro, aviso de exclusão de conta, etc.) — hoje tudo acontece só na interface.
+## Legado SQLite
 
-## Fundação — 10/10/2026
-
-Execute `npm test` para os testes de integração (banco em memória e porta local temporária). `src/start.js` inicia o processo; `src/server.js` exporta a aplicação.
-
-Sessões expiram sete dias após cadastro. A migração aditiva concede sete dias aos tokens existentes na primeira inicialização, sem renovar em reinícios. `POST /api/auth/logout` revoga o token no servidor. O frontend usa sessionStorage e descarta tokens antigos de localStorage. Ainda não há recuperação de acesso: perder o token ou expirar a sessão impede retornar à mesma conta. O fluxo é provisório.
-
-Diretório e vagas aceitam `limit` (1–100, padrão 30) e `offset` (0–100000). A interface ainda mostra a primeira página. O diretório só retorna bio e LinkedIn ao titular e não expõe cidade. Publicação de vagas ainda depende do papel Empresa sem aprovação de organização.
-
-Elos avançam sequencialmente; saltos e regressões retornam 409. Convites com aceite estão pendentes. Exclusão remove vagas e elos, anonimiza o perfil e revoga sessão em transação; não alcança backups. Consulte `../PLANO-EVOLUCAO.md` para as etapas restantes.
+Pare as escritas e faça exportação consistente com `scripts/export-sqlite.py`. A importação com `node src/import-sqlite.js ARQUIVO` exige schema migrado e destino vazio; confere contagens e chaves estrangeiras em transação. Tokens antigos são invalidados. Não carregar dados pessoais no repositório ou na imagem. Revise os procedimentos em `infra/azure/README.md` antes de uma migração real.

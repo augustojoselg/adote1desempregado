@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+**/data
+**/*.db
+**/*.db-*
+**/*.log
+.DS_Store
+
+**/*.sqlite-export.json
+**/*.local.json
+**/*.local.bicepparam

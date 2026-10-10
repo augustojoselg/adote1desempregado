@@ -1,0 +1,69 @@
+name: Validate application
+
+on:
+  pull_request:
+  push:
+    branches: [main, feature/sistema-novo-10102026]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: emprego
+          POSTGRES_DB: emprego
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U emprego -d emprego"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      NODE_ENV: development
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: emprego
+      PGDATABASE: emprego
+      PGSSL: disable
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            app/package-lock.json
+      - name: Install API dependencies
+        working-directory: backend
+        run: npm ci
+      - name: Test authorization, sessions and transactions
+        working-directory: backend
+        run: npm test
+      - name: Audit API production dependencies
+        working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Install frontend dependencies
+        working-directory: app
+        run: npm ci
+      - name: Build frontend
+        working-directory: app
+        run: npm run build
+      - name: Audit frontend dependencies
+        working-directory: app
+        run: npm audit --audit-level=high
+      - name: Check deployment scripts and Compose
+        run: |
+          bash -n scripts/azure-deploy.sh
+          docker compose config --quiet
+          git diff --check

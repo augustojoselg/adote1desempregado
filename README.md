@@ -42,3 +42,19 @@ Este projeto coleta dados pessoais (nome, papel, cidade, LinkedIn) para operar a
 ## Contato
 
 `contato@empregosocial.com.br`
+
+## Docker e nuvem
+
+Execute `docker compose up -d --build` na raiz e acesse `http://localhost:8080`.
+Consulte [DOCKER.md](DOCKER.md) para imagens, registry, configuração por ambiente, persistência e execução local com PostgreSQL.
+
+Para publicar no Azure Container Registry, siga [ACR.md](ACR.md).
+
+Infraestrutura Azure com PostgreSQL privado, Container Apps e Key Vault em [infra/azure/README.md](infra/azure/README.md).
+
+## Uso e operação
+
+- [Guia dos usuários](docs/GUIA-USUARIOS.md): cadastro, perfis, elos, vagas e privacidade.
+- [Guia dos administradores](docs/GUIA-ADMINISTRADORES.md): acesso, releases, monitoramento, segredos e recuperação.
+- [Plano de uso](docs/PLANO-USO.md): capacitação, piloto e critérios de abertura pública.
+- [Registro da implantação Azure](infra/azure/IMPLANTACAO.md): estado observado e verificações.

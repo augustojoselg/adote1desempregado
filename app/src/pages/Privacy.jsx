@@ -13,7 +13,7 @@ export default function Privacy({ onClose }) {
         </div>
 
         <div className="privacy-body">
-          <p><strong>Última atualização:</strong> versão 1.0.0</p>
+          <p><strong>Última atualização:</strong> 10/10/2026 — versão 1.1.0</p>
 
           <h2>1. Quem somos (controlador dos dados)</h2>
           <p>
@@ -30,7 +30,7 @@ export default function Privacy({ onClose }) {
           <p>Usamos seus dados exclusivamente para operar o diretório de mentores e profissionais, viabilizar a criação de elos (conexões) e, no caso de empresas, publicar vagas. A base legal é o seu <strong>consentimento</strong> (Art. 7º, I da LGPD), dado de forma explícita no cadastro.</p>
 
           <h2>4. Com quem compartilhamos</h2>
-          <p>Seu nome, cidade, papel, bio e LinkedIn ficam visíveis para as demais pessoas cadastradas na rede — é assim que o diretório de mentores e profissionais funciona. Não vendemos nem compartilhamos seus dados com terceiros fora da plataforma.</p>
+          <p>O diretório autenticado mostra nome, papel e data de cadastro. Cidade, bio e LinkedIn de terceiros não são disponibilizados nesta versão. Os participantes veem seus próprios elos; vagas incluem os dados informados pela empresa e o nome de quem publicou. A infraestrutura Azure processa os dados para hospedar o serviço. Links de candidatura levam a sites externos, com políticas próprias.</p>
 
           <h2>5. Seus direitos</h2>
           <ul>
@@ -41,10 +41,10 @@ export default function Privacy({ onClose }) {
           </ul>
 
           <h2>6. Retenção</h2>
-          <p>Mantemos seus dados enquanto sua conta estiver ativa. Ao excluir seu perfil, seus dados pessoais (nome, cidade, bio, LinkedIn) são substituídos por informações anônimas imediatamente; registros de elos e vagas já existentes são mantidos de forma anonimizada para preservar o histórico de outras pessoas da rede.</p>
+          <p>Mantemos o perfil enquanto a conta estiver ativa. Ao excluir, removemos seus elos e vagas, limpamos nome, cidade, bio e LinkedIn e revogamos a sessão. Permanecem identificadores técnicos e registros de consentimento; os prazos de expurgo precisam ser definidos pela operação. Backups anteriores podem conservar dados durante a retenção configurada de sete dias. Exclusões devem ser reaplicadas antes de liberar dados restaurados.</p>
 
           <h2>7. Segurança</h2>
-          <p>Senhas e tokens de acesso são armazenados de forma criptografada (hash). O acesso à API é protegido por autenticação e limitação de requisições. Nenhum sistema é 100% imune a incidentes — em caso de vazamento de dados, notificaremos os titulares afetados e a ANPD conforme exigido pela LGPD.</p>
+          <p>O servidor guarda somente o hash do token de sessão. Em produção, a sessão usa cookie HttpOnly, Secure e SameSite=Strict, expira em sete dias e pode ser revogada ao sair. Ainda não há login recuperável; o acesso permanece restrito até concluir esse fluxo. A aplicação não solicita senha de usuário nesta versão. Logs operacionais podem conter IP e informações técnicas, com retenção de 30 dias. Nenhum sistema é imune a incidentes; a operação avalia e realiza as comunicações exigidas pela legislação.</p>
 
           <h2>8. Contato do encarregado (DPO)</h2>
           <p>

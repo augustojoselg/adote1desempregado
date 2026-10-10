@@ -80,13 +80,13 @@ export default function Directory() {
                 {user.city && <span>📍 {user.city}</span>}
                 {user.linkedin && <span>in {user.linkedin}</span>}
               </div>
-              <button
+              {((isMentor && user.role === 'Profissional') || (isProfissional && user.role === 'Mentor')) && <button
                 className="btn-connect"
                 onClick={() => handleConnect(user.id)}
               >
                 <EloIcon size={16} />
                 {isMentor ? 'Adotar' : isProfissional ? 'Pedir apoio' : 'Conectar'}
-              </button>
+              </button>}
             </div>
           ))}
         </div>

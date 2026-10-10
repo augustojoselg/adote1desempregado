@@ -7,6 +7,7 @@ import { ROLES, PRIVACY_POLICY_VERSION } from '../constants.js';
 
 import { httpUrl } from '../lib/validation.js';
 
+import { cookieName, cookieOptions, allowBearer, requireSameOrigin } from '../lib/session.js';
 const router = Router();
 
 const signupSchema = z.object({
@@ -22,7 +23,7 @@ const signupSchema = z.object({
 });
 
 // POST /api/auth/signup
-router.post('/signup', (req, res) => {
+router.post('/signup', requireSameOrigin, async (req, res) => {
   const parsed = signupSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Dados inválidos', details: parsed.error.flatten() });
@@ -34,31 +35,33 @@ router.post('/signup', (req, res) => {
   const tokenHash = hashToken(token);
   const now = new Date().toISOString();
 
-  db.transaction(() => {
-    db.prepare(
+  await db.transaction(async () => {
+    await db.prepare(
       `INSERT INTO users (id, name, role, bio, city, linkedin, token_hash, consent_given, consent_at, privacy_policy_version, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
     ).run(id, name, role, bio, city, linkedin, tokenHash, now, PRIVACY_POLICY_VERSION, now);
 
-    db.prepare(
+    await db.prepare(
       `INSERT INTO consent_log (user_id, action, policy_version) VALUES (?, 'given', ?)`
     ).run(id, PRIVACY_POLICY_VERSION);
 
-    db.prepare('UPDATE users SET session_expires_at = ? WHERE id = ?').run(new Date(Date.now() + 7 * 86400000).toISOString(), id);
+    await db.prepare('UPDATE users SET session_expires_at = ? WHERE id = ?').run(new Date(Date.now() + 7 * 86400000).toISOString(), id);
   })();
-  const user = db.prepare('SELECT id, name, role, bio, city, linkedin, created_at FROM users WHERE id = ?').get(id);
+  const user = await db.prepare('SELECT id, name, role, bio, city, linkedin, created_at FROM users WHERE id = ?').get(id);
 
-  res.status(201).json({ user, token });
+  res.cookie(cookieName, token, { ...cookieOptions, maxAge: 7 * 86400000 });
+  res.status(201).json({ user, ...(allowBearer() ? { token } : {}) });
 });
 
 // GET /api/auth/me — confirms the token is valid and returns the current user
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   const { id, name, role, bio, city, linkedin, created_at } = req.user;
   res.json({ user: { id, name, role, bio, city, linkedin, created_at } });
 });
 
-router.post('/logout', requireAuth, (req, res) => {
-  db.prepare("UPDATE users SET token_hash = '', session_expires_at = NULL WHERE id = ?").run(req.user.id);
+router.post('/logout', requireAuth, async (req, res) => {
+  await db.prepare("UPDATE users SET token_hash = '', session_expires_at = NULL WHERE id = ?").run(req.user.id);
+  res.clearCookie(cookieName, cookieOptions);
   res.sendStatus(204);
 });
 export default router;

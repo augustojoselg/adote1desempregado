@@ -4,7 +4,7 @@ Revisão do código local em 10/10/2026. Este inventário não certifica conform
 
 ## Dados e acesso
 
-A API Express armazena nome, papel, bio, cidade, LinkedIn, hash de token, datas de cadastro, consentimento e expiração em SQLite. Também mantém elos, vagas e histórico de consentimento. O frontend usa a API; o token fica em sessionStorage e o antigo token em localStorage é descartado.
+A API Express armazena nome, papel, bio, cidade, LinkedIn, hash de token, datas de cadastro, consentimento e expiração em PostgreSQL. Também mantém elos, vagas e histórico de consentimento. O frontend usa a API; a sessão fica em cookie HttpOnly; em produção também Secure e SameSite=Strict. Tokens antigos no armazenamento do navegador são descartados.
 
 O diretório autenticado retorna ID, nome, papel e data de cadastro, com limite de 30 registros por padrão e máximo de 100 por consulta. Bio e LinkedIn só são retornados ao próprio titular; cidade não é exposta no diretório. Os nomes seguem visíveis a contas autenticadas. Ainda falta visibilidade configurável por titular e compartilhamento autorizado.
 
@@ -15,8 +15,10 @@ Cadastro e consentimento são gravados juntos em transação. O titular pode cor
 - Definir controlador, canal de atendimento, finalidades, fundamentos de tratamento e responsáveis.
 - Aprovar prazos de retenção do histórico e política de expurgo de backups. A exclusão atual não remove cópias de backup.
 - Revisar a política exibida no frontend antes da publicação; não presumir que o texto atual acompanha este inventário.
-- Implantar identidade recuperável, verificação de e-mail, cookies protegidos e MFA para acessos privilegiados. A sessão provisória expira em sete dias e ainda não há recuperação de acesso.
+- Implantar identidade recuperável, verificação de e-mail e MFA para acessos privilegiados. A sessão provisória expira em sete dias e ainda não há recuperação de acesso.
 - Implementar aceite de convites, organizações verificadas, autorização por campo e moderação.
 - Validar proteção do banco, backups, restauração, incidentes e acesso operacional no ambiente escolhido.
 
 Os testes locais verificam controles técnicos específicos. Não substituem revisão da governança nem testes do ambiente implantado.
+
+A infraestrutura Azure proposta usa banco privado e identidade gerenciada. Backup retido por sete dias no template requer revisão com responsáveis; exclusão de perfil não elimina automaticamente backups. Homologação fica restrita ao IP do operador. Não houve certificação ou revisão jurídica.

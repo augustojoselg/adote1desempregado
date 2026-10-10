@@ -2,30 +2,20 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const TOKEN_KEY = 'adote-auth-token'
 localStorage.removeItem(TOKEN_KEY)
 
-export function getToken() {
-  return sessionStorage.getItem(TOKEN_KEY)
-}
-
-export function setToken(token) {
-  if (token) sessionStorage.setItem(TOKEN_KEY, token)
-  else sessionStorage.removeItem(TOKEN_KEY)
-}
-
-async function request(path, { method = 'GET', body, auth = true } = {}) {
+// Clear obsolete browser tokens; sessions now use an HttpOnly cookie.
+sessionStorage.removeItem(TOKEN_KEY)
+async function request(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' }
-  if (auth) {
-    const token = getToken()
-    if (token) headers.Authorization = `Bearer ${token}`
-  }
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
+    credentials: 'include',
     headers,
     body: body ? JSON.stringify(body) : undefined,
   })
 
-  // Handle export (file download) specially — caller deals with it.
-  if (res.headers.get('content-disposition')) return res
+  // Only successful exports are downloads.
+  if (res.ok && res.headers.get('content-disposition')) return res
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {

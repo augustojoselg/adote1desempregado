@@ -1,12 +1,15 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-process.env.DB_PATH = ':memory:';
+process.env.PGSCHEMA = 'test_' + (await import('node:crypto')).randomUUID().replaceAll('-', '');
 const { default: app } = await import('../src/server.js');
 const { db } = await import('../src/db.js');
+await db.exec(`CREATE SCHEMA ${process.env.PGSCHEMA}`);
+const { migrate } = await import('../src/migrate.js');
+await migrate();
 const server = app.listen(0, '127.0.0.1');
 await new Promise(resolve => server.once('listening', resolve));
 const base = `http://127.0.0.1:${server.address().port}/api`;
-after(() => { server.close(); db.close(); });
+after(async () => { server.close(); await db.exec(`DROP SCHEMA ${process.env.PGSCHEMA} CASCADE`); await db.close(); });
 async function request(path, token, method = 'GET', body) {
   const res = await fetch(base + path, { method, headers: {
     'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -47,11 +50,11 @@ test('autorização, privacidade, estados, exclusão e revogação', async () =>
   assert.equal((await request(`/elos/${id}/status`, mentor.token, 'PATCH', { status: 'Combinado' })).status, 409);
   assert.equal((await request('/account/export', companyB.token)).data.vagas_publicadas.length, 0);
   assert.equal((await request('/account', company.token, 'DELETE')).status, 200);
-  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM jobs').get().n, 0);
+  assert.equal(Number((await db.prepare('SELECT COUNT(*) AS n FROM jobs').get()).n), 0);
   assert.equal((await request('/auth/me', company.token)).status, 401);
   assert.equal((await request('/account', person.token, 'DELETE')).status, 200);
   assert.equal((await request('/elos/mine', mentor.token)).data.elos.length, 0);
-  db.prepare('UPDATE users SET session_expires_at = ? WHERE id = ?').run('2000-01-01T00:00:00.000Z', outsider.user.id);
+  await db.prepare('UPDATE users SET session_expires_at = ? WHERE id = ?').run('2000-01-01T00:00:00.000Z', outsider.user.id);
   assert.equal((await request('/auth/me', outsider.token)).status, 401);
   assert.equal((await request('/auth/logout', mentor.token, 'POST')).status, 204);
   assert.equal((await request('/auth/me', mentor.token)).status, 401);
