@@ -30,3 +30,7 @@ Participação voluntária e gratuita; nenhuma promessa de contratação. Compar
 ## Decisões ainda necessárias
 
 Login inicial: Microsoft Entra single-tenant, com convidados B2B e papéis Member, Company e Admin. Definir responsáveis por atendimento/privacidade, aprovação empresarial, orçamento mensal e alertas, critérios de carga, RPO/RTO e domínio do aplicativo. O domínio institucional conhecido é `empregosocial.com.br`; a troca de DNS depende do acesso ao provedor e da avaliação do site existente, para evitar interrompê-lo.
+
+## Continuidade da implantação
+
+Em 10/10/2026, o responsável confirmou acesso com login Microsoft no Azure. As demais jornadas e os critérios operacionais permanecem pendentes. Consulte o [checklist de próximos passos](PROXIMOS-PASSOS.md) para retomar a validação.

@@ -20,7 +20,7 @@ A criação do elo é imediata; convite com aceite, chat e acompanhamento de can
 
 A aplicação usa **React, Express e PostgreSQL 17**, com imagens Docker separadas para frontend e API. O ambiente local funciona com Docker Compose.
 
-A aplicação está implantada no Azure em **[acessar o sistema](https://adote1p-web.bluewave-facfb082.centralus.azurecontainerapps.io)**. Os testes técnicos de saúde, banco e proteção de acesso passaram. O login interativo e os ensaios de restauração e carga ainda precisam de validação; consulte o [registro da implantação](infra/azure/IMPLANTACAO.md) antes de ampliar o público.
+A aplicação está implantada no Azure em **[acessar o sistema](https://adote1p-web.bluewave-facfb082.centralus.azurecontainerapps.io)**. Os testes técnicos de saúde, banco e proteção de acesso passaram. O responsável confirmou o login Microsoft; as jornadas funcionais e os ensaios de restauração e carga ainda precisam de validação; consulte o [registro da implantação](infra/azure/IMPLANTACAO.md) antes de ampliar o público.
 
 O acesso de produção usa **Microsoft Entra ID**, com contas autorizadas pela operação, incluindo convidados externos. As permissões de empresa e administrador são atribuídas no Entra. O cadastro simplificado disponível no ambiente local é destinado ao desenvolvimento.
 
@@ -91,6 +91,8 @@ As imagens são publicadas no ACR e implantadas por digest. As imagens legadas v
 Não versione `.env`, credenciais, cookies, tokens, exportações de usuários ou cópias de bancos. Use os arquivos de exemplo como referência e mantenha valores sensíveis fora do controle de versão.
 
 ## Uso, administração e privacidade
+
+- [Próximos passos](docs/PROXIMOS-PASSOS.md): ponto de parada e checklist para retomar a validação e preparar o piloto.
 
 - [Guia dos usuários](docs/GUIA-USUARIOS.md): acesso, perfis, elos, vagas e gestão dos próprios dados.
 - [Guia dos administradores](docs/GUIA-ADMINISTRADORES.md): permissões, contas, operação, segredos e recuperação.

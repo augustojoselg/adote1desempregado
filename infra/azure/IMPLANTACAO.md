@@ -29,8 +29,12 @@ Smoke HTTPS no Azure aprovado: health e readiness 200, diretório e administraç
 
 ## Validações ainda pendentes
 
-O teste técnico não conclui o login interativo Microsoft em nome do usuário. Confirmar primeiro acesso, cadastro e jornada administrativa com o operador. Validar MFA conforme políticas/licenças do tenant, restauração de backup e carga antes de ampliar o público. O limitador atual depende da cadeia de proxies; revisar identificação do IP original e comportamento sob carga antes de escalar o uso.
+O responsável confirmou acesso pelo login Microsoft em 10/10/2026. Conclusão do cadastro e jornada administrativa ainda não foram confirmadas. Validar MFA conforme políticas/licenças do tenant, restauração de backup e carga antes de ampliar o público. O limitador atual depende da cadeia de proxies; revisar identificação do IP original e comportamento sob carga antes de escalar o uso.
 
 Os containers podem reduzir a zero, causando espera no primeiro acesso. O custo fixo estimado é US$ 23,18/mês antes de consumo, rede, logs, operações, impostos e excedentes; não representa limite de cobrança. Não foram configurados domínio próprio, alertas orçamentários ou alta disponibilidade.
 
 Guias: [usuários](../../docs/GUIA-USUARIOS.md), [administradores](../../docs/GUIA-ADMINISTRADORES.md) e [plano de uso](../../docs/PLANO-USO.md). PR: [#6](https://github.com/augustojoselg/adote1desempregado/pull/6).
+
+## Retomada
+
+Checklist de continuidade e ponto de parada em [próximos passos](../../docs/PROXIMOS-PASSOS.md).
