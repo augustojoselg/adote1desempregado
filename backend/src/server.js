@@ -11,7 +11,6 @@ import eloRoutes from './routes/elos.js';
 import jobRoutes from './routes/jobs.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 
 app.use(helmet());
@@ -52,6 +51,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Adote um Desempregado API rodando em http://localhost:${PORT}`);
-});
+export default app;

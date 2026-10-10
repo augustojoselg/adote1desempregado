@@ -3,13 +3,15 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 
+import { httpUrl } from '../lib/validation.js';
+
 const router = Router();
 router.use(requireAuth);
 
 const updateSchema = z.object({
   bio: z.string().trim().max(600).optional(),
   city: z.string().trim().max(120).optional(),
-  linkedin: z.string().trim().max(200).optional(),
+  linkedin: httpUrl.or(z.literal('')).optional(),
 });
 
 // PATCH /api/account — right to rectification (LGPD Art. 18, III)
@@ -57,20 +59,22 @@ router.get('/export', (req, res) => {
   });
 });
 
-// DELETE /api/account — right to erasure / anonymization (LGPD Art. 18, VI)
-// We anonymize rather than hard-delete the row so that elos/jobs referencing
-// this user don't break for the other party — but no personally identifying
-// field survives. The token is invalidated immediately.
+// DELETE /api/account — removes related rows and anonymizes the profile atomically.
 router.delete('/', (req, res) => {
   const userId = req.user.id;
   const now = new Date().toISOString();
 
-  db.prepare(
-    `UPDATE users SET name = 'Usuário removido', bio = '', city = '', linkedin = '', token_hash = '', anonymized_at = ? WHERE id = ?`
-  ).run(now, userId);
+  db.transaction(() => {
+    db.prepare(
+      `UPDATE users SET name = 'Usuário removido', bio = '', city = '', linkedin = '', token_hash = '', session_expires_at = NULL, consent_given = 0, anonymized_at = ? WHERE id = ?`
+    ).run(now, userId);
 
-  db.prepare(`INSERT INTO consent_log (user_id, action) VALUES (?, 'deletion_requested')`).run(userId);
+    db.prepare(`INSERT INTO consent_log (user_id, action) VALUES (?, 'deletion_requested')`).run(userId);
 
+    db.prepare('DELETE FROM jobs WHERE posted_by = ?').run(userId);
+    db.prepare('DELETE FROM elos WHERE mentor_id = ? OR professional_id = ?').run(userId, userId);
+    db.prepare("INSERT INTO consent_log (user_id, action) VALUES (?, 'revoked')").run(userId);
+  })();
   res.json({ message: 'Seu perfil foi removido e seus dados pessoais foram anonimizados.' });
 });
 

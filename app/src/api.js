@@ -1,13 +1,14 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const TOKEN_KEY = 'adote-auth-token'
+localStorage.removeItem(TOKEN_KEY)
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  return sessionStorage.getItem(TOKEN_KEY)
 }
 
 export function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+  if (token) sessionStorage.setItem(TOKEN_KEY, token)
+  else sessionStorage.removeItem(TOKEN_KEY)
 }
 
 async function request(path, { method = 'GET', body, auth = true } = {}) {
@@ -36,6 +37,7 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
 
 export const api = {
   signup: (payload) => request('/auth/signup', { method: 'POST', body: payload, auth: false }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
 
   updateAccount: (payload) => request('/account', { method: 'PATCH', body: payload }),

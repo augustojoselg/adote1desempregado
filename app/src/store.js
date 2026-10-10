@@ -36,7 +36,13 @@ export const useStore = create((set, get) => ({
     return user
   },
 
-  logout: () => {
+  logout: async () => {
+    try {
+      await api.logout()
+    } catch (error) {
+      set({ error: error.message })
+      return
+    }
     setToken(null)
     set({ currentUser: null, users: [], elos: [], jobs: [] })
   },

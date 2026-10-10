@@ -63,4 +63,12 @@ CREATE INDEX IF NOT EXISTS idx_elos_professional ON elos(professional_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_posted_by ON jobs(posted_by);
 `);
 
+// Additive migration gives existing sessions a bounded grace period.
+if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === 'session_expires_at')) {
+  db.transaction(() => {
+    db.exec("ALTER TABLE users ADD COLUMN session_expires_at TEXT");
+    db.exec("UPDATE users SET session_expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+7 days')");
+    db.pragma('user_version = 1');
+  })();
+}
 export default db;

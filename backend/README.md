@@ -6,12 +6,12 @@ API em Node.js + Express + SQLite (via `better-sqlite3`). Substitui o antigo arm
 
 ```bash
 cd backend
-npm install
+npm ci
 cp .env.example .env
 npm run dev
 ```
 
-O servidor sobe em `http://localhost:3001` por padrão. `npm run dev` reinicia automaticamente a cada alteração (usa `node --watch`). Para produção, use `npm start`.
+O servidor sobe em `http://localhost:3001` por padrão. `npm run dev` reinicia automaticamente a cada alteração (usa `node --watch`). Para iniciar sem recarga automática, use `npm start`. Produção depende das etapas operacionais do plano.
 
 O banco SQLite é criado automaticamente em `backend/data/adote.db` na primeira execução — não precisa criar nada manualmente.
 
@@ -57,3 +57,13 @@ Autenticação: envie o token retornado no signup como `Authorization: Bearer <t
 3. **Sem HTTPS embutido.** Em produção, rode atrás de um proxy reverso (nginx, Caddy, ou a plataforma de hospedagem) que termine TLS.
 4. **Sem backup automático do banco.** Configure backup periódico do arquivo `data/adote.db` (ou do Postgres, se migrar).
 5. **Sem envio de e-mail transacional** (confirmação de cadastro, aviso de exclusão de conta, etc.) — hoje tudo acontece só na interface.
+
+## Fundação — 10/10/2026
+
+Execute `npm test` para os testes de integração (banco em memória e porta local temporária). `src/start.js` inicia o processo; `src/server.js` exporta a aplicação.
+
+Sessões expiram sete dias após cadastro. A migração aditiva concede sete dias aos tokens existentes na primeira inicialização, sem renovar em reinícios. `POST /api/auth/logout` revoga o token no servidor. O frontend usa sessionStorage e descarta tokens antigos de localStorage. Ainda não há recuperação de acesso: perder o token ou expirar a sessão impede retornar à mesma conta. O fluxo é provisório.
+
+Diretório e vagas aceitam `limit` (1–100, padrão 30) e `offset` (0–100000). A interface ainda mostra a primeira página. O diretório só retorna bio e LinkedIn ao titular e não expõe cidade. Publicação de vagas ainda depende do papel Empresa sem aprovação de organização.
+
+Elos avançam sequencialmente; saltos e regressões retornam 409. Convites com aceite estão pendentes. Exclusão remove vagas e elos, anonimiza o perfil e revoga sessão em transação; não alcança backups. Consulte `../PLANO-EVOLUCAO.md` para as etapas restantes.

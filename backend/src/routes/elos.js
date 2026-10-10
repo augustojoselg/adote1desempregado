@@ -71,6 +71,9 @@ router.patch('/:id/status', (req, res) => {
     return res.status(403).json({ error: 'Você não faz parte desse elo.' });
   }
 
+  if (ELO_STATUSES[ELO_STATUSES.indexOf(elo.status) + 1] !== parsed.data.status) {
+    return res.status(409).json({ error: 'Avance uma etapa por vez. Estados finais não podem ser alterados.' });
+  }
   db.prepare('UPDATE elos SET status = ? WHERE id = ?').run(parsed.data.status, req.params.id);
   const updated = db.prepare('SELECT * FROM elos WHERE id = ?').get(req.params.id);
   res.json({ elo: updated });
