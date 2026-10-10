@@ -20,7 +20,7 @@ A criação do elo é imediata; convite com aceite, chat e acompanhamento de can
 
 A aplicação usa **React, Express e PostgreSQL 17**, com imagens Docker separadas para frontend e API. O ambiente local funciona com Docker Compose.
 
-A infraestrutura Azure está definida em Bicep e sua implantação está em andamento. O endereço público e a liberação para usuários dependem da conclusão das verificações operacionais. Consulte o [registro da implantação](infra/azure/IMPLANTACAO.md) antes de considerar o ambiente disponível em produção.
+A aplicação está implantada no Azure em **[acessar o sistema](https://adote1p-web.bluewave-facfb082.centralus.azurecontainerapps.io)**. Os testes técnicos de saúde, banco e proteção de acesso passaram. O login interativo e os ensaios de restauração e carga ainda precisam de validação; consulte o [registro da implantação](infra/azure/IMPLANTACAO.md) antes de ampliar o público.
 
 O acesso de produção usa **Microsoft Entra ID**, com contas autorizadas pela operação, incluindo convidados externos. As permissões de empresa e administrador são atribuídas no Entra. O cadastro simplificado disponível no ambiente local é destinado ao desenvolvimento.
 

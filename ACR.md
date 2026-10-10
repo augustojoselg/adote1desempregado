@@ -4,12 +4,12 @@ O projeto gera duas imagens: `emprego-social/api` e `emprego-social/web`. Este g
 
 ## Release de produção com identidade Entra
 
-Em 10/10/2026, publicadas as imagens AMD64 `v2-pg-20261010-04`, com login Entra OIDC/PKCE, administração auditada, política de privacidade 1.2.0 e dependências corrigidas:
+Em 10/10/2026, publicadas as imagens AMD64 API `v2-pg-20261010-04` e web `v2-pg-20261010-05`, com login Entra OIDC/PKCE, administração auditada, política de privacidade 1.2.0 e dependências corrigidas:
 
 | Imagem | Digest imutável |
 | --- | --- |
 | `emprego-social/api` | `sha256:749224d488f4f7f93aa50b92b2745f6108bce4214bb73d6340a761fa1393806c` |
-| `emprego-social/web` | `sha256:6baf796a7a6ba782b3914b4564def86c9d61d92b1ed5ac5f9e2e600547e71c69` |
+| `emprego-social/web` | `sha256:c9d3b34cae8e953bda30f3e166b5e0dc31300c1ea961a7dbf1084f80c7a0c5e6` |
 
 O ACR foi reduzido de Standard para Basic após conferir aproximadamente 127 MB de uso; o usuário administrador permanece desabilitado. O deploy usa digests, nunca tags mutáveis. Veja [registro de implantação](infra/azure/IMPLANTACAO.md).
 
