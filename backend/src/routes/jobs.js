@@ -4,17 +4,21 @@ import { db } from '../db.js';
 import { generateId } from '../lib/crypto.js';
 import { requireAuth } from '../middleware/auth.js';
 
+import { httpUrl, pagination } from '../lib/validation.js';
 const router = Router();
 
 // GET /api/jobs — public within the network (auth required, same reasoning as directory)
 router.get('/', requireAuth, (req, res) => {
+  const parsed = pagination.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: 'Paginação inválida.' });
+  const { limit, offset } = parsed.data;
   const rows = db
     .prepare(
       `SELECT jobs.*, users.name as posted_by_name FROM jobs
        JOIN users ON users.id = jobs.posted_by
-       ORDER BY jobs.created_at DESC`
+       WHERE users.anonymized_at IS NULL ORDER BY jobs.created_at DESC, jobs.id LIMIT ? OFFSET ?`
     )
-    .all();
+    .all(limit, offset);
   res.json({ jobs: rows });
 });
 
@@ -22,7 +26,7 @@ const createSchema = z.object({
   company: z.string().trim().min(1).max(150),
   title: z.string().trim().min(1).max(150),
   location: z.string().trim().max(150).optional().default(''),
-  link: z.string().trim().url('Link inválido'),
+  link: httpUrl,
 });
 
 // POST /api/jobs — only companies can post

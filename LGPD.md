@@ -1,27 +1,22 @@
-# LGPD — Status de conformidade e pendências
+# Privacidade — comportamento e pendências
 
-Análise feita sobre o código em `app/src` (fluxo de cadastro, diretório e vagas).
+Revisão do código local em 10/10/2026. Este inventário não certifica conformidade jurídica nem descreve uma inspeção de produção.
 
-## O que já está adequado
+## Dados e acesso
 
-- Coleta de dados mínima: nome, papel, bio, cidade e LinkedIn — nenhum dado sensível (saúde, biometria, origem racial, etc.)
-- Sem rastreadores ou analytics de terceiros no `package.json`
-- Dados armazenados apenas em `localStorage` do navegador — não trafegam para nenhum servidor externo hoje
+A API Express armazena nome, papel, bio, cidade, LinkedIn, hash de token, datas de cadastro, consentimento e expiração em SQLite. Também mantém elos, vagas e histórico de consentimento. O frontend usa a API; o token fica em sessionStorage e o antigo token em localStorage é descartado.
 
-## Pendências
+O diretório autenticado retorna ID, nome, papel e data de cadastro, com limite de 30 registros por padrão e máximo de 100 por consulta. Bio e LinkedIn só são retornados ao próprio titular; cidade não é exposta no diretório. Os nomes seguem visíveis a contas autenticadas. Ainda falta visibilidade configurável por titular e compartilhamento autorizado.
 
-| # | Item | Onde | Por quê |
-|---|------|------|---------|
-| 1 | Consentimento não é uma ação afirmativa — o cadastro ocorre ao clicar "Entrar na corrente", sem checkbox | `app/src/pages/Entry.jsx` | Art. 8º LGPD exige consentimento livre, informado e inequívoco |
-| 2 | Link "termos de privacidade" aponta para `#` (não existe) | `app/src/pages/Entry.jsx` | Art. 9º exige transparência sobre uso dos dados |
-| 3 | Não há como editar ou excluir o próprio perfil | App (nenhuma tela) | Art. 18º garante acesso, correção, exclusão e revogação de consentimento |
-| 4 | Não há identificação do controlador nem canal de contato para pedidos de LGPD | Site e app | Necessário para o titular saber a quem dirigir solicitações |
-| 5 | Dados ficam em `localStorage`, isolados por navegador — o diretório não é de fato compartilhado entre usuários diferentes | `app/src/store.js` | Não é uma falha de LGPD em si, mas muda a análise quando migrar para backend: aí sim vai existir dado pessoal armazenado em servidor, exigindo controle de acesso e criptografia em repouso |
+Cadastro e consentimento são gravados juntos em transação. O titular pode corrigir o perfil, exportar os próprios registros e excluir a conta. Exclusão anonimiza o perfil, revoga a sessão, remove vagas e elos associados e registra exclusão e revogação em transação. O outro participante deixa de ver o elo removido. O histórico de consentimento e identificadores pseudônimos permanecem no banco.
 
-## Prioridade sugerida
+## Pendências de governança e operação
 
-1. Checkbox de consentimento explícito no cadastro
-2. Política de Privacidade real (documento acessível)
-3. Botão "Excluir meu perfil" no Dashboard
-4. Identificação do controlador (TISL + EmpregoSocial) e e-mail de contato para pedidos de LGPD, no rodapé do site e dentro do app
-5. Ao migrar para backend real: revisar controles de acesso, criptografia em repouso e plano de resposta a incidentes
+- Definir controlador, canal de atendimento, finalidades, fundamentos de tratamento e responsáveis.
+- Aprovar prazos de retenção do histórico e política de expurgo de backups. A exclusão atual não remove cópias de backup.
+- Revisar a política exibida no frontend antes da publicação; não presumir que o texto atual acompanha este inventário.
+- Implantar identidade recuperável, verificação de e-mail, cookies protegidos e MFA para acessos privilegiados. A sessão provisória expira em sete dias e ainda não há recuperação de acesso.
+- Implementar aceite de convites, organizações verificadas, autorização por campo e moderação.
+- Validar proteção do banco, backups, restauração, incidentes e acesso operacional no ambiente escolhido.
+
+Os testes locais verificam controles técnicos específicos. Não substituem revisão da governança nem testes do ambiente implantado.

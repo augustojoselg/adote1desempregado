@@ -10,7 +10,7 @@ export function requireAuth(req, res, next) {
   }
 
   const tokenHash = hashToken(token);
-  const user = db.prepare('SELECT * FROM users WHERE token_hash = ? AND anonymized_at IS NULL').get(tokenHash);
+  const user = db.prepare('SELECT * FROM users WHERE token_hash = ? AND anonymized_at IS NULL AND session_expires_at > ?').get(tokenHash, new Date().toISOString());
 
   if (!user) {
     return res.status(401).json({ error: 'Sessão inválida ou expirada.' });

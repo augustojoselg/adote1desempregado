@@ -5,6 +5,8 @@ import { generateId, generateToken, hashToken } from '../lib/crypto.js';
 import { requireAuth } from '../middleware/auth.js';
 import { ROLES, PRIVACY_POLICY_VERSION } from '../constants.js';
 
+import { httpUrl } from '../lib/validation.js';
+
 const router = Router();
 
 const signupSchema = z.object({
@@ -12,7 +14,7 @@ const signupSchema = z.object({
   role: z.enum(ROLES),
   bio: z.string().trim().max(600).optional().default(''),
   city: z.string().trim().max(120).optional().default(''),
-  linkedin: z.string().trim().max(200).optional().default(''),
+  linkedin: httpUrl.or(z.literal('')).optional().default(''),
   // Explicit, unambiguous consent — LGPD Art. 8. Must be `true`, not just "present".
   consent: z.literal(true, {
     errorMap: () => ({ message: 'É necessário aceitar a Política de Privacidade para se cadastrar.' }),
@@ -32,20 +34,20 @@ router.post('/signup', (req, res) => {
   const tokenHash = hashToken(token);
   const now = new Date().toISOString();
 
-  db.prepare(
-    `INSERT INTO users (id, name, role, bio, city, linkedin, token_hash, consent_given, consent_at, privacy_policy_version, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
-  ).run(id, name, role, bio, city, linkedin, tokenHash, now, PRIVACY_POLICY_VERSION, now);
+  db.transaction(() => {
+    db.prepare(
+      `INSERT INTO users (id, name, role, bio, city, linkedin, token_hash, consent_given, consent_at, privacy_policy_version, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
+    ).run(id, name, role, bio, city, linkedin, tokenHash, now, PRIVACY_POLICY_VERSION, now);
 
-  db.prepare(
-    `INSERT INTO consent_log (user_id, action, policy_version) VALUES (?, 'given', ?)`
-  ).run(id, PRIVACY_POLICY_VERSION);
+    db.prepare(
+      `INSERT INTO consent_log (user_id, action, policy_version) VALUES (?, 'given', ?)`
+    ).run(id, PRIVACY_POLICY_VERSION);
 
+    db.prepare('UPDATE users SET session_expires_at = ? WHERE id = ?').run(new Date(Date.now() + 7 * 86400000).toISOString(), id);
+  })();
   const user = db.prepare('SELECT id, name, role, bio, city, linkedin, created_at FROM users WHERE id = ?').get(id);
 
-  // The raw token is returned ONCE. The client must store it (e.g. localStorage)
-  // to authenticate future requests. It cannot be recovered if lost — the user
-  // would need to sign up again, since we never store the raw value.
   res.status(201).json({ user, token });
 });
 
@@ -55,4 +57,8 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: { id, name, role, bio, city, linkedin, created_at } });
 });
 
+router.post('/logout', requireAuth, (req, res) => {
+  db.prepare("UPDATE users SET token_hash = '', session_expires_at = NULL WHERE id = ?").run(req.user.id);
+  res.sendStatus(204);
+});
 export default router;
