@@ -29,7 +29,7 @@ router.patch('/', async (req, res) => {
   const values = keys.map((k) => fields[k]);
   await db.prepare(`UPDATE users SET ${setClause} WHERE id = ?`).run(...values, req.user.id);
 
-  const user = await db.prepare('SELECT id, name, role, bio, city, linkedin, created_at FROM users WHERE id = ?').get(req.user.id);
+  const user = await db.prepare('SELECT id, name, role, bio, city, linkedin, created_at, is_admin, company_approved FROM users WHERE id = ?').get(req.user.id);
   res.json({ user });
 });
 
@@ -39,13 +39,14 @@ router.get('/export', async (req, res) => {
   const userId = req.user.id;
 
   const profile = await db
-    .prepare('SELECT id, name, role, bio, city, linkedin, consent_given, consent_at, privacy_policy_version, created_at FROM users WHERE id = ?')
+    .prepare('SELECT id, name, role, bio, city, linkedin, consent_given, consent_at, privacy_policy_version, created_at, identity_subject FROM users WHERE id = ?')
     .get(userId);
 
   const elosAsMentor = await db.prepare('SELECT * FROM elos WHERE mentor_id = ?').all(userId);
   const elosAsProfessional = await db.prepare('SELECT * FROM elos WHERE professional_id = ?').all(userId);
   const jobsPosted = await db.prepare('SELECT * FROM jobs WHERE posted_by = ?').all(userId);
   const consentHistory = await db.prepare('SELECT action, policy_version, created_at FROM consent_log WHERE user_id = ? ORDER BY created_at').all(userId);
+  const adminHistory = await db.prepare('SELECT action, created_at FROM admin_audit WHERE target_id = ? ORDER BY created_at').all(userId);
 
   await db.prepare(`INSERT INTO consent_log (user_id, action) VALUES (?, 'export_requested')`).run(userId);
 
@@ -57,6 +58,7 @@ router.get('/export', async (req, res) => {
     elos_como_profissional: elosAsProfessional,
     vagas_publicadas: jobsPosted,
     historico_de_consentimento: consentHistory,
+    historico_administrativo: adminHistory,
   });
 });
 
@@ -67,7 +69,7 @@ router.delete('/', async (req, res) => {
 
   await db.transaction(async () => {
     await db.prepare(
-      `UPDATE users SET name = 'Usuário removido', bio = '', city = '', linkedin = '', token_hash = '', session_expires_at = NULL, consent_given = 0, anonymized_at = ? WHERE id = ?`
+      `UPDATE users SET name = 'Usuário removido', bio = '', city = '', linkedin = '', token_hash = '', session_expires_at = NULL, identity_subject = NULL, account_enabled = false, company_approved = false, is_admin = false, consent_given = 0, anonymized_at = ? WHERE id = ?`
     ).run(now, userId);
 
     await db.prepare(`INSERT INTO consent_log (user_id, action) VALUES (?, 'deletion_requested')`).run(userId);

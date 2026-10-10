@@ -16,7 +16,8 @@ export default function Entry({ onShowPrivacy }) {
   const [consent, setConsent] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signup } = useStore()
+  const { signup, authConfig } = useStore()
+  const requiresLogin = authConfig.provider === 'entra' && !authConfig.identityReady
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -47,7 +48,15 @@ export default function Entry({ onShowPrivacy }) {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="entry-form">
+        {!authConfig.provider ? (
+          <p role="alert">Não foi possível conectar ao sistema. Atualize a página para tentar novamente.</p>
+        ) : requiresLogin ? (
+          <div className="entry-form">
+            <p>Entre com sua conta Microsoft autorizada. No primeiro acesso, você completa seu perfil.</p>
+            <a href="/api/auth/login" className="btn-submit">Entrar com Microsoft</a>
+            <button type="button" className="link-btn" onClick={onShowPrivacy}>Política de Privacidade</button>
+          </div>
+        ) : <form onSubmit={handleSubmit} className="entry-form">
           <div className="form-group">
             <label htmlFor="name" className="label">Qual é seu nome?</label>
             <input
@@ -76,7 +85,7 @@ export default function Entry({ onShowPrivacy }) {
           <div className="form-group">
             <label className="label">Qual é seu papel na corrente?</label>
             <div className="roles-grid">
-              {ROLES.map((role) => (
+              {ROLES.filter((role) => role.id !== 'Empresa' || authConfig.canRegisterCompany).map((role) => (
                 <button
                   key={role.id}
                   type="button"
@@ -102,8 +111,8 @@ export default function Entry({ onShowPrivacy }) {
               <button type="button" className="link-btn" onClick={onShowPrivacy}>
                 Política de Privacidade
               </button>
-              . Sei que meu nome, cidade e demais dados do perfil ficarão visíveis para outras
-              pessoas da rede, e que posso exportar ou excluir meus dados quando quiser.
+              . Sei que meu nome e papel aparecem no diretório autenticado e que posso
+              exportar meus dados ou excluir meu perfil.
             </span>
           </label>
 
@@ -112,7 +121,7 @@ export default function Entry({ onShowPrivacy }) {
           <button type="submit" className="btn-submit" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar na corrente'}
           </button>
-        </form>
+        </form>}
       </div>
     </div>
   )

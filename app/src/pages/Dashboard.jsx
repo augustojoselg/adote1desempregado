@@ -5,6 +5,7 @@ import JobBoard from '../components/JobBoard'
 import EloTracker from '../components/EloTracker'
 import Stats from '../components/Stats'
 import AccountPanel from '../components/AccountPanel'
+import AdminPanel from '../components/AdminPanel'
 import './Dashboard.css'
 
 const TABS = [
@@ -18,7 +19,8 @@ const TABS = [
 export default function Dashboard({ onShowPrivacy }) {
   const [activeTab, setActiveTab] = useState('stats')
   const [error, setError] = useState('')
-  const { loadStats, loadUsers, loadJobs, loadMyElos } = useStore()
+  const { loadStats, loadUsers, loadJobs, loadMyElos, currentUser } = useStore()
+  const tabs = currentUser.is_admin ? [...TABS, { id: 'admin', label: 'Administração', icon: '🛡️' }] : TABS
 
   useEffect(() => {
     Promise.all([loadStats(), loadUsers(), loadJobs(), loadMyElos()])
@@ -28,7 +30,7 @@ export default function Dashboard({ onShowPrivacy }) {
   return (
     <div className="dashboard">
       <nav className="dashboard-nav">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -47,6 +49,7 @@ export default function Dashboard({ onShowPrivacy }) {
         {activeTab === 'jobs' && <JobBoard />}
         {activeTab === 'meus-elos' && <EloTracker />}
         {activeTab === 'account' && <AccountPanel onShowPrivacy={onShowPrivacy} />}
+        {activeTab === 'admin' && currentUser.is_admin && <AdminPanel />}
       </main>
     </div>
   )

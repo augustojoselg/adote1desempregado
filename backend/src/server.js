@@ -10,9 +10,12 @@ import accountRoutes from './routes/account.js';
 import userRoutes from './routes/users.js';
 import eloRoutes from './routes/elos.js';
 import jobRoutes from './routes/jobs.js';
+import adminRoutes from './routes/admin.js';
+import { identityEnabled } from './lib/identity.js';
 
 const app = express();
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+if (process.env.NODE_ENV === 'production' && !identityEnabled) throw new Error('Produção exige AUTH_PROVIDER=entra.');
 
 // Enable only when the API is reachable exclusively through trusted proxies.
 const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
@@ -65,6 +68,7 @@ app.use('/api/account', accountRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/elos', eloRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/admin', adminRoutes);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

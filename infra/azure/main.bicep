@@ -9,6 +9,8 @@ param apiImage string
 param webImage string
 @description('Your IPv4 address without /32. Web preview and Key Vault administration are restricted to it.')
 param operatorIpv4 string
+@description('Keep true during initial checks. False publishes HTTPS login; all personal data still requires Entra authentication.')
+param restrictWebToOperator bool = true
 @description('Entra object ID of the operator permitted to manage Key Vault secrets.')
 param operatorObjectId string
 @description('First deploy false, run and verify the migration job, then deploy true.')
@@ -17,6 +19,8 @@ param enableApplication bool = false
 param enableContainerEnvironment bool = true
 @description('Optional versionless Key Vault secret references: [{name: smtp-token, envName: SMTP_TOKEN}]. Never values.')
 param runtimeSecrets array = []
+@description('Public client ID of the single-tenant Entra web application.')
+param oidcClientId string = ''
 @allowed(['Standard_B1ms', 'Standard_B2s'])
 param postgresSku string = 'Standard_B1ms'
 @minValue(0)
@@ -32,7 +36,7 @@ var dbSubnetId = resourceId('Microsoft.Network/virtualNetworks/subnets', '${pref
 var appSubnetId = resourceId('Microsoft.Network/virtualNetworks/subnets', '${prefix}-vnet', 'apps')
 var acrPullRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 var secretsUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-var tags = { project: 'emprego-social', environment: 'preview', managedBy: 'bicep' }
+var tags = { project: 'emprego-social', environment: 'production', managedBy: 'bicep' }
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = { name: acrName }
 resource apiIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -126,6 +130,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         properties: {
           addressPrefix: '10.42.2.0/27'
           networkSecurityGroup: { id: postgresNsg.id }
+          serviceEndpoints: [{ service: 'Microsoft.Storage' }]
           delegations: [{ name: 'postgres', properties: { serviceName: 'Microsoft.DBforPostgreSQL/flexibleServers' } }]
         }
       }
@@ -211,7 +216,7 @@ resource secretResources 'Microsoft.KeyVault/vaults/secrets@2023-07-01' existing
   parent: vault
   name: secret.name
 }]
-resource runtimeSecretPermissions 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (secret, i) in runtimeSecrets: {
+resource runtimeSecretPermissions 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for (secret, i) in runtimeSecrets: if (enableApplication && enableContainerEnvironment) {
   scope: secretResources[i]
   name: guid(vault.id, secret.name, apiIdentity.id)
   properties: { principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal', roleDefinitionId: secretsUserRole }
@@ -239,7 +244,7 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = if (enable
   dependsOn: [vnet]
 }
 resource environmentDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableContainerEnvironment) {
-  scope: environment!
+  scope: environment
   name: '${prefix}-diagnostics'
   properties: {
     workspaceId: logs.id
@@ -321,6 +326,9 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = if (enableApplication &&
           { name: 'SESSION_COOKIE_SECURE', value: 'true' }
           { name: 'FRONTEND_ORIGIN', value: origin }
           { name: 'TRUST_PROXY_HOPS', value: '1' }
+          { name: 'AUTH_PROVIDER', value: 'entra' }
+          { name: 'OIDC_TENANT_ID', value: tenant().tenantId }
+          { name: 'OIDC_CLIENT_ID', value: oidcClientId }
         ], secretEnvironment)
         probes: [
           { type: 'Startup', httpGet: { path: '/api/health', port: 3001 }, periodSeconds: 5, failureThreshold: 60 }
@@ -349,7 +357,7 @@ resource web 'Microsoft.App/containerApps@2025-01-01' = if (enableApplication &&
         targetPort: 8080
         allowInsecure: false
         transport: 'http'
-        ipSecurityRestrictions: [{ name: 'operator-preview', action: 'Allow', ipAddressRange: '${operatorIpv4}/32' }]
+        ipSecurityRestrictions: restrictWebToOperator ? [{ name: 'operator-validation', action: 'Allow', ipAddressRange: '${operatorIpv4}/32' }] : []
       }
     }
     template: {

@@ -2,7 +2,7 @@
 
 ## Responsabilidades e acesso
 
-Esta versão não possui painel administrativo, papel Admin na aplicação, aprovação de empresas, moderação, recuperação de contas ou auditoria administrativa funcional. Mentor, Profissional e Empresa são papéis de negócio, não permissões de infraestrutura. Administrar Azure não concede uma sessão de usuário do app.
+A área Administração aparece somente para contas com papel Admin atribuído no Entra e atualizado no login. Permite listar participantes com paginação, revogar sessão, suspender e restabelecer acesso. Cada ação registra ator, alvo, tipo e horário em tabela sem permissão de alteração/exclusão pelo runtime. Mentor, Profissional e Empresa são papéis de negócio; ser Owner no Azure não concede automaticamente Admin no app.
 
 A operação deve designar responsáveis por infraestrutura, segurança, atendimento e privacidade. Use contas nominativas com MFA; mantenha a identidade de migração separada da API. Conceda leitura de monitoramento aos operadores e eleve permissões de implantação somente quando necessário. Evite Owner/Contributor para atividades cotidianas. Não compartilhe a sessão do administrador.
 
@@ -12,7 +12,7 @@ O grupo `rg-adote1` reúne Container Apps, PostgreSQL privado, Key Vault, identi
 
 `infra/azure/parameters.local.json` é configuração local ignorada pelo Git. Não coloque senhas nele. Mudanças de rede, identidade, referência de imagem ou escala devem ser feitas em Bicep e revisadas em PR. O job `adote1p-migrate` possui privilégios de migração; a API recebe apenas permissões de dados. Nunca coloque a identidade do job no runtime da API.
 
-O frontend está limitado ao IP autorizado; a API tem ingresso interno e o banco não tem endpoint público habilitado. Para alterar o IP do operador, atualize o parâmetro e execute validate, plan e apply. Não remova o firewall para diagnosticar conectividade.
+Durante a validação, o frontend fica limitado ao IP autorizado. Depois da liberação, a página HTTPS de login pode ser pública, mas os dados requerem sessão Entra. A API tem ingresso interno e o banco não tem endpoint público habilitado. Para alterar o IP do operador, atualize o parâmetro e execute validate, plan e apply. Não remova o firewall para diagnosticar conectividade.
 
 ## Rotina operacional
 
@@ -62,6 +62,10 @@ Em suspeita de exposição, limite o ingresso, preserve evidências de acesso re
 
 ## Atendimento e entrada em produção pública
 
-Não edite diretamente o banco para recuperar contas ou mudar papéis sem procedimento autorizado e auditado. Hoje não existe ferramenta segura para essas tarefas. Cadastros empresariais e links de vagas precisam de verificação operacional antes de uso real.
+No portal Entra, abra Aplicativos empresariais → EmpregoSocial-Production → Usuários e grupos. Convide pessoas externas pelo fluxo B2B e atribua Member para participantes, Company para representantes empresariais validados ou Admin para operadores. A atribuição de usuário é obrigatória; autenticação sem um desses papéis é negada. Defina MFA no tenant conforme as licenças e políticas disponíveis; esta entrega não altera políticas globais do tenant.
 
-São dependências da liberação pública: login verificável e recuperável, controle de empresas, tratamento de convites de elo, canal de atendimento, revisão de privacidade, responsáveis, monitoramento com alertas, orçamento e ensaios de recuperação/carga. A infraestrutura pode estar criada enquanto essa liberação continua pendente. Consulte [plano de uso](PLANO-USO.md).
+Na aplicação, abra Administração para Encerrar sessão, Suspender acesso ou Restabelecer acesso. O sistema impede atuar sobre a própria conta nessa tela. Restabelecer não contorna o Entra: o próximo login ainda precisa de permissão no provedor. Ao remover ou reduzir papel no Entra, revogue também a sessão existente no app para aplicar a mudança imediatamente; sem revogação, a sessão dura até 24 horas. Para acesso administrativo comprometido, outro administrador autorizado deve suspender a conta e revisar o Entra. Não altere diretamente dados de papéis, identidade ou sessões no banco.
+
+Senha e recuperação de conta são tratadas pela Microsoft; não solicite senhas ao usuário. Empresas e links de vagas precisam de verificação operacional. Não há edição/moderação de vagas no painel desta versão; suspender o publicador não remove automaticamente suas vagas. Havendo conteúdo indevido, limite o acesso e siga o procedimento de incidente até existir ferramenta de moderação autorizada.
+
+São dependências da liberação operacional: teste interativo real do login, MFA e acessos revisados, canal de atendimento, revisão de privacidade, responsáveis, monitoramento com alertas, orçamento e ensaios de recuperação/carga. Convites de elo com aceite e moderação de conteúdo continuam no roadmap; combine o apoio previamente e opere inicialmente com participantes autorizados. A infraestrutura pode estar criada enquanto essa liberação continua pendente. Consulte [plano de uso](PLANO-USO.md).

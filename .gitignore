@@ -8,3 +8,5 @@ app/.env
 *.sqlite-export.json
 infra/azure/*.local.json
 infra/azure/*.local.bicepparam
+__pycache__/
+*.pyc

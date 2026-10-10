@@ -17,7 +17,11 @@ for name in ['apiImage','webImage']:
 address = ipaddress.ip_address(p['operatorIpv4']['value'])
 if address.version != 4 or not address.is_global: raise SystemExit('Informe o IPv4 público autorizado do operador.')
 if not re.fullmatch(r'[a-fA-F0-9-]{36}', p['operatorObjectId']['value']): raise SystemExit('Object ID do operador inválido.')
-if p.get('runtimeSecrets', {}).get('value'): raise SystemExit('Adicione referências de secrets somente após revisar os nomes e RBAC no Bicep; este roteiro inicial não precisa de secrets estáticos.')
+references = p.get('runtimeSecrets', {}).get('value', [])
+if references != [{'name': 'oidc-client-secret', 'envName': 'OIDC_CLIENT_SECRET'}, {'name': 'oidc-cookie-key', 'envName': 'OIDC_COOKIE_KEY'}]:
+    raise SystemExit('Configure somente as duas referências OIDC aprovadas; nunca valores de secrets.')
+if not re.fullmatch(r'[a-fA-F0-9-]{36}', p.get('oidcClientId', {}).get('value', '')):
+    raise SystemExit('Informe o client ID público Entra.')
 PY
 active_subscription=$(az account show --query id --output tsv)
 if [ "$active_subscription" != "$subscription_id" ]; then echo 'Assinatura ativa diferente da assinatura do projeto.' >&2; exit 1; fi

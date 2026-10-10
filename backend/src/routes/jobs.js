@@ -5,6 +5,7 @@ import { generateId } from '../lib/crypto.js';
 import { requireAuth } from '../middleware/auth.js';
 
 import { httpUrl, pagination } from '../lib/validation.js';
+import { identityEnabled } from '../lib/identity.js';
 const router = Router();
 
 // GET /api/jobs — public within the network (auth required, same reasoning as directory)
@@ -31,7 +32,7 @@ const createSchema = z.object({
 
 // POST /api/jobs — only companies can post
 router.post('/', requireAuth, async (req, res) => {
-  if (req.user.role !== 'Empresa') {
+  if (req.user.role !== 'Empresa' || (identityEnabled && !req.user.company_approved)) {
     return res.status(403).json({ error: 'Apenas contas do tipo Empresa podem publicar vagas.' });
   }
   const parsed = createSchema.safeParse(req.body);

@@ -52,4 +52,4 @@ Saída em `dist/`. No container, `VITE_API_URL=/api` mantém frontend e API na m
 ✅ Responsivo mobile-first
 ✅ Paleta visual TISL + EmpregoSocial
 
-O cadastro ainda não tem login recuperável nem validação de empresa. Uso restrito até concluir os critérios do [plano de uso](../docs/PLANO-USO.md). A PWA armazena apenas o shell estático; dados autenticados exigem conexão.
+Produção usa login Microsoft Entra com recuperação pelo provedor e autorização de empresas pela operação. Administradores autorizados acessam o painel de contas para suspensão, reativação e revogação de sessões. Abertura condicionada aos critérios do [plano de uso](../docs/PLANO-USO.md). A PWA armazena apenas o shell estático; dados autenticados exigem conexão.

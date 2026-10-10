@@ -1,132 +1,127 @@
-# Azure — configuração econômica com PostgreSQL e identidades
+# Azure — PostgreSQL privado e login Entra
 
-Implantação autorizada em andamento, com acesso inicialmente restrito. Consulte [IMPLANTACAO.md](IMPLANTACAO.md) para o resultado observado. O ACR existente é reutilizado; imagens SQLite v1 são incompatíveis com PostgreSQL.
-
-## Validação realizada em 10/10/2026
-
-- Testes da API com PostgreSQL, sessões de produção e transações: 3 testes aprovados.
-- Smoke test Docker aprovado, incluindo persistência após recriar os containers e exclusão da conta de teste.
-- Imagens AMD64 `v2-pg-20261010-03` publicadas e digests conferidos no ACR; consulte [ACR.md](../../ACR.md).
-- Bicep compilado e `az deployment group validate` concluído sem erro com aplicação inicialmente desabilitada.
-- `what-if` retornou `Succeeded`, criação da infraestrutura e preservação do registry existente. O administrador Entra do PostgreSQL apareceu como `Unsupported` na análise porque seu identificador depende da identidade gerenciada ainda não criada. Isso exige verificação durante a implantação; não é uma confirmação de funcionamento da autenticação.
-
-A conectividade privada, a autenticação das identidades e a restauração de backup ainda precisam ser testadas no Azure após provisionamento. Os parâmetros locais estão fora do Git; confira o IP autorizado antes de aplicar. Após autorização, iniciou-se o provisionamento; há recursos faturáveis. O registro da implantação distingue o que foi criado e o que ainda falta validar.
+Implantação autorizada em `rg-adote1`, região `centralus`, prefixo `adote1p`. Consulte [IMPLANTACAO.md](IMPLANTACAO.md) para o estado observado, endereço e verificações. O ACR existente `adote1`, em East US, foi reduzido para Basic; usuário administrador desabilitado. Imagens por digest em [ACR.md](../../ACR.md).
 
 ## Arquitetura
 
 ```mermaid
 flowchart LR
-  O[Operador: IP autorizado] -->|HTTPS| W[Container Apps: web]
+  U[Participante autorizado] -->|HTTPS| W[Container Apps: web]
   W -->|HTTPS interno| A[Container Apps: API]
-  A -->|TLS + token Entra| P[(PostgreSQL privado)]
+  A -->|OIDC: code + PKCE| E[Microsoft Entra]
+  A -->|TLS + identidade gerenciada| P[(PostgreSQL privado)]
   A -->|Referências por identidade| K[Key Vault com firewall e RBAC]
   J[Job de migração: identidade separada] --> P
   R[ACR: pull por identidade] --> W
   R --> A
 ```
 
-Container Apps Consumption: web e API com 0,25 vCPU/0,5 GiB cada, mínimo zero e máximo uma réplica para limitar consumo. Pode haver cold start. API com ingresso interno; só web tem ingresso externo, restrito ao IPv4 do operador. O PostgreSQL Flexible Server 17 usa B1ms, 32 GB, backup de sete dias e rede privada. Não há HA ou redundância geográfica nesta configuração econômica.
+Container Apps Consumption: web e API com 0,25 vCPU/0,5 GiB cada, mínimo zero e máximo uma réplica. Há cold start e indisponibilidade durante falhas dessa única réplica. PostgreSQL Flexible Server 17 B1ms, 32 GB, backup de sete dias, sem HA nem redundância geográfica. A API tem ingresso interno; o banco tem publicNetworkAccess=Disabled e passwordAuth=Disabled. A subnet PostgreSQL preserva o service endpoint Microsoft.Storage exigido pelo serviço.
 
-Key Vault Standard usa RBAC, purge protection e soft delete de 90 dias. Firewall nega por padrão, permite o subnet dos apps por service endpoint e o IP administrativo informado. O endereço do vault segue público, mas não aceita acesso de redes arbitrárias. Private endpoints e ACR Premium são alternativas com custo adicional, não requisitos para evitar senhas fixas.
+O frontend começa restrito ao IP do operador. Depois dos testes, `restrictWebToOperator=false` publica a página HTTPS de login; dados pessoais continuam exigindo autenticação Entra. `operatorIpv4` permanece limitando a administração do Key Vault mesmo nessa configuração.
 
-## Identidades e segredos
+Key Vault Standard usa RBAC, purge protection e soft delete de 90 dias. Firewall nega por padrão, permite a subnet dos apps por service endpoint e o IP administrativo. O endereço segue público, com acesso de rede restrito. Private endpoints, ACR Premium e proteção de borda são alternativas com custos adicionais.
+
+## Identidades, autenticação e segredos
 
 | Identidade | Permissões |
 | --- | --- |
-| web-mi | AcrPull; identidade indisponível ao processo web (lifecycle None) |
-| api-mi | AcrPull; leitura apenas dos secrets explicitamente referenciados; DML nas tabelas do app |
+| web-mi | AcrPull; indisponível ao processo web, lifecycle None |
+| api-mi | AcrPull; leitura dos dois segredos OIDC; DML do app; INSERT/SELECT da auditoria |
 | migrate-mi | AcrPull; administrador Entra do PostgreSQL para bootstrap e migrações |
-| operador | Key Vault Secrets Officer no vault; firewall limitado ao seu IP |
+| operador | Key Vault Secrets Officer no vault; administração de segredos limitada ao seu IP |
 
-A aplicação não recebe senha do banco nem senha do ACR. ManagedIdentityCredential solicita tokens Entra para novas conexões PostgreSQL. TLS verifica o certificado do servidor. O frontend não recebe esses tokens. Os IDs das identidades, hostname e nome do banco são configuração pública, não credenciais.
+Banco e ACR não usam senhas. ManagedIdentityCredential obtém token Entra para cada nova conexão PostgreSQL; TLS verifica o certificado. A identidade da API não tem DDL nem permissão de alterar/apagar a auditoria administrativa. O job privilegiado é manual e separado da API.
 
-Key Vault fica inicialmente vazio: não é necessário inventar um segredo para um serviço que já aceita identidade. Para SMTP ou outro provedor que exija uma chave, grave o valor diretamente no Key Vault por ferramenta autorizada e use `runtimeSecrets` com apenas nome e nome da variável. Não coloque valores em parâmetros, CLI com tracing, outputs ou imagens. O Bicep concede leitura em cada secret, não no vault inteiro. Revise a rotação e a atualização efetiva das revisões após trocar uma credencial.
+O login de usuários usa aplicação web Entra single-tenant, código de autorização, PKCE S256, estado, nonce, assinatura, issuer e audience validados. A atribuição ao aplicativo é obrigatória. Papéis Member, Company e Admin são controlados no Entra; somente Company/Admin autoriza cadastro empresarial. Contas externas entram como convidadas B2B autorizadas. Não há autocadastro público irrestrito.
 
-Logs usam Azure Monitor por referência ao workspace, sem expor shared keys do Log Analytics. A API registra categoria de erro, sem stack, parâmetros, corpos ou tokens; Nginx exclui query string, cookies e Authorization do formato de acesso. Operadores com acesso ao processo ou permissões administrativas ainda podem acessar dados e tokens temporários; Key Vault não elimina esse risco. Restrinja RBAC, exija MFA e revise acessos.
+A API guarda hash de sessão; cookie HttpOnly, Secure, SameSite=Strict, expiração de 24 horas. Novo login revoga a sessão anterior; logout, suspensão e revogação administrativa invalidam acesso. Cookies temporários OIDC/registro usam SameSite=Lax para o retorno do provedor, AES-256-GCM e validade de dez minutos. Não há tokens Microsoft ou refresh tokens persistidos no app, no banco ou no navegador. OIDC não solicita escopo de e-mail nem acesso ao Microsoft Graph. A recuperação da conta acontece pelo provedor Microsoft. A aplicação não exige MFA por código; a política de MFA deve ser configurada no tenant conforme licenças e responsáveis.
+
+Os dois segredos necessários são `oidc-client-secret` e `oidc-cookie-key`, somente no Key Vault e na memória do processo autorizado. Bicep/JSON contêm nomes, client ID e referências, nunca valores. `scripts/azure-identity-bootstrap.py` grava por arquivos temporários privados 0600, captura a resposta da credencial sem exibi-la e remove arquivos ao terminar. Se a gravação falhar, tenta revogar a credencial recém-criada. A credencial OIDC expira em 180 dias; a expiração também é registrada no Key Vault.
+
+Logs usam Azure Monitor sem shared keys no template. Nginx não registra query string, cookies ou Authorization. Erros da API não imprimem corpos, tokens ou stacks. Logs podem conter IP e identificadores técnicos: limite acesso e retenção. Administradores ainda conseguem acessar dados e segredos conforme suas permissões; não há promessa de segurança absoluta.
 
 ## Custos estimados
 
-Consulta à API pública Azure Retail Prices em 10/10/2026, região centralus, USD, sem descontos contratuais ou impostos. Detalhes em [cost-estimate.json](cost-estimate.json); atualização com `python3 scripts/azure-costs.py centralus`.
+Consulta Azure Retail Prices em 10/10/2026, Central US, USD, sem descontos ou impostos. Snapshot em [cost-estimate.json](cost-estimate.json); atualize com `python3 scripts/azure-costs.py centralus`.
 
-| Item | Estimativa |
+| Item | Estimativa mensal |
 | --- | --- |
-| PostgreSQL B1ms, 730 horas × US$0,01921 | US$14,02/mês |
-| PostgreSQL, 32 GB × US$0,13 | US$4,16/mês |
-| ACR Standard (comparação), 30 dias × US$0,6666 | US$20,00/mês |
-| Subtotal fixo acima | **US$38,18/mês** |
-| ACR Basic atual, 30 dias × US$0,1666 | US$5,00/mês |
-| Subtotal com Basic | **US$23,18/mês** |
+| PostgreSQL B1ms, 730 h × US$0,01921 | US$14,02 |
+| PostgreSQL, 32 GB × US$0,13 | US$4,16 |
+| ACR Basic, 30 dias × US$0,1666 | US$5,00 |
+| Subtotal fixo desses itens | **US$23,18** |
 
-Esses subtotais não incluem Container Apps, rede/IPs gerenciados, logs, egress, backup excedente e operações Key Vault. O custo final depende do tráfego e do tempo ativo; não há garantia de gratuidade. Container Apps possui franquia mensal compartilhada por assinatura. Após a franquia, os medidores consultados são US$0,000024/vCPU-segundo e US$0,000003/GiB-segundo. Dois containers continuamente ativos nesse tamanho representam aproximadamente US$39,42/mês de compute bruto antes da franquia, além dos itens fixos.
+A redução do ACR economiza cerca de US$15/mês contra Standard; havia aproximadamente 127 MB de uso na verificação. O subtotal exclui Container Apps, rede/IPs gerenciados, DNS, logs, egress, backups excedentes, operações Key Vault, impostos e câmbio. Dois containers continuamente ativos no tamanho definido representam aproximadamente US$39,42/mês de compute bruto antes da franquia compartilhada da assinatura. Scale-to-zero não desliga PostgreSQL.
 
-O workspace retém 30 dias e tem quota de ingestão de 0,1 GB/dia; esse limite não é teto financeiro rigoroso e pode interromper logs. Configure orçamento e alertas no Cost Management; teto e destinatários ainda precisam ser definidos. Orçamentos alertam; não desligam automaticamente recursos. PostgreSQL permanece faturável sem tráfego; o scale-to-zero só se aplica aos apps.
+O workspace retém 30 dias e tem quota de 0,1 GB/dia. Isso pode interromper logs e não é teto financeiro rigoroso. Orçamento e destinatários de alertas ainda precisam ser definidos. Alertas de orçamento não desligam recursos. A configuração econômica não inclui AKS, NAT Gateway, Firewall, Bastion, Front Door ou WAF.
 
-A troca do ACR Standard para Basic foi executada após conferir aproximadamente 127 MB de uso, economizando cerca de US$15/mês nos medidores consultados. Revise throughput e armazenamento conforme o crescimento. Não criar AKS, NAT Gateway, Firewall, Bastion ou Front Door para este piloto reduz custos fixos, com limitações de proteção de borda e disponibilidade descritas abaixo.
+## Implantação em etapas
 
-## Pré-requisitos e região
+Requer CLI Azure, compilador Bicep, Docker, autorização RBAC e permissão Entra para registrar o aplicativo e atribuir usuários. East US e East US 2 apresentaram restrição de oferta nesta assinatura; Central US retornou PostgreSQL 17 e Standard_B1ms permitidos. O script consulta versões antes de aplicar; validate não reserva capacidade.
 
-Assinatura: e7ab0c25-090c-4159-b2c2-9d401e356796. Grupo: rg-adote1. ACR: adote1.
-
-East US 2 passou na validação inicial, mas falhou durante a criação: a consulta atual retornou OfferRestricted=Enabled e nenhuma versão disponível. Central US retornou PostgreSQL 17 e Standard_B1ms permitidos; é a região padrão atual. O prefixo adote1p separa a implantação definitiva dos recursos provisórios adote1. O script confere versões permitidas antes de criar recursos; validate não reserva capacidade. Tráfego para o ACR em eastus pode ter cobrança entre regiões.
-
-O operador de deploy precisa de permissão para criar os recursos e atribuir papéis. A identidade cotidiana da aplicação não deve receber Owner/Contributor. CLI Azure, compilador Bicep, Docker e acesso ao ACR são necessários. Informe seu IPv4 público autorizado e object ID Entra; nenhum segredo é solicitado.
-
-## Publicar a nova versão e revisar
-
-Na raiz, execute testes e publique com uma nova tag, nunca sobrescrevendo v1:
+1. Registre uma aplicação Entra single-tenant e seu service principal. Copie parameters.example.json para parameters.local.json, ignorado pelo Git. Informe client ID, digests, IP e object ID do operador. Não substitua referências OIDC por valores.
+2. Comece com enableApplication=false. Se a quota de ambiente estiver ocupada por exclusão pendente, use enableContainerEnvironment=false para adiantar banco, rede e identidades; depois volte para true. O modo Incremental não remove recursos condicionais já existentes.
+3. Execute os testes locais e publique imagens com uma tag inédita. Não sobrescreva tags; registre os digests.
+4. Compile Bicep, execute validate e plan, e só então apply.
 
 ```sh
 docker compose --profile test run --build --rm test
-az acr login --name adote1
-# Use uma tag ainda não utilizada; o exemplo abaixo é a primeira versão PostgreSQL.
-docker buildx build --platform linux/amd64 -f backend/Dockerfile -t adote1-emajexd8e5cvf4b9.azurecr.io/emprego-social/api:v2-pg-20261010-03 --push .
-docker buildx build --platform linux/amd64 -f app/Dockerfile -t adote1-emajexd8e5cvf4b9.azurecr.io/emprego-social/web:v2-pg-20261010-03 --push .
-```
-
-Obtenha os digests com `az acr repository show --name adote1 --image emprego-social/api:TAG --query digest -o tsv`, repetindo para web. Copie parameters.example.json para parameters.local.json, substitua digests, IPv4 e object ID. O arquivo local está no gitignore. Mantenha enableApplication=false na primeira execução. Se a assinatura estiver com a quota de ambiente ocupada por uma exclusão pendente, enableContainerEnvironment=false permite adiantar banco, rede e identidades. Depois que a quota liberar, volte para true e aplique para criar ambiente e job antes de habilitar a aplicação. Recursos condicionais omitidos no modo Incremental não são apagados.
-
-```sh
-az bicep build --file infra/azure/main.bicep --outfile /tmp/adote1-template.json
 bash scripts/azure-deploy.sh validate
 bash scripts/azure-deploy.sh plan
-```
-
-Se Bicep não estiver integrado à CLI, use `BICEP_BIN=/caminho/do/bicep bash scripts/azure-deploy.sh plan`. Examine os recursos e custos antes de aplicar. Os comandos seguintes criam recursos faturáveis e permissões:
-
-```sh
 bash scripts/azure-deploy.sh apply
-az containerapp job start --name adote1p-migrate --resource-group rg-adote1
-az containerapp job execution list --name adote1p-migrate --resource-group rg-adote1 --output table
 ```
 
-Espere o job terminar com Succeeded. Se falhar, não habilite os apps. Confira logs pelo Azure Monitor; não habilite logging de tokens ou dumps de ambiente. O job cria a role Entra pelo object ID, aplica SQL com advisory lock/transação e concede permissões de dados ao runtime. A identidade de migração fica no job, não na API.
+Se o compilador não estiver integrado à CLI, defina `BICEP_BIN=/caminho/do/bicep`. Os comandos apply criam recursos faturáveis e permissões. Se o administrador Entra do banco falhar porque o servidor ainda não está acessível, aguarde Ready e reaplique; nunca habilite senha ou rede pública para contornar a falha.
 
-Depois, mude enableApplication=true em parameters.local.json e execute novamente validate, plan e apply. Confira o output webOrigin, healthchecks, readiness e cookies HTTPS pelo IP autorizado. Execute `APP_ORIGIN=https://ENDERECO.azurecontainerapps.io node scripts/azure-smoke.mjs` na máquina autorizada; o teste usa dados fictícios e limpa as contas. Teste que a API não é acessível externamente e que o banco não tem rota pública. Confirme que a identidade runtime não consegue executar DDL. Antes do uso real, realize restauração de backup e rollback com uma imagem anterior **compatível com PostgreSQL**; as imagens SQLite v1 não são rollback válido.
-
-## Dados legados
-
-Não há cópia automática de SQLite para Azure. Preserve o volume e crie backup consistente antes de migrar. Com escritas interrompidas, use:
+5. Após criar o vault, configure o aplicativo Entra e grave os segredos. Os argumentos são identificadores públicos:
 
 ```sh
-python3 scripts/export-sqlite.py /origem/adote.db /local-protegido/backup.sqlite-export.json
+python3 scripts/azure-identity-bootstrap.py \
+  --application-object-id OBJECT_ID_DO_APLICATIVO \
+  --service-principal-id OBJECT_ID_DO_SERVICE_PRINCIPAL \
+  --operator-object-id OBJECT_ID_DO_OPERADOR \
+  --vault-name NOME_DO_VAULT
 ```
 
-O importador `backend/src/import-sqlite.js` exige banco PostgreSQL migrado e vazio, executa tudo em transação e valida contagens e FKs. Executar com identidade de migração em um runner autorizado na VNet, montando o arquivo de forma privada e temporária. Não publicar esse arquivo na imagem, no Git, no stdout ou em blob público. Não abrir o banco à Internet para facilitar a importação. Teste primeiro numa cópia; duplicações antigas de elos podem violar a nova restrição única e causar rollback.
+6. Com o ambiente criado, consulte defaultDomain. No registro Entra, autorize somente a redirect URI exata `https://adote1p-web.DOMINIO_DO_AMBIENTE/api/auth/callback`, com implicit grant desabilitado. O bootstrap atribui Admin ao operador; valide MFA e demais acessos no portal.
+7. Execute o job manual e aguarde Succeeded antes de habilitar apps:
 
-A importação invalida tokens antigos; o vínculo dessas contas com um login verificável e recuperável precisa ser definido antes de disponibilizar dados aos titulares.
+```sh
+az containerapp job start --name adote1p-migrate --resource-group rg-adote1
+az containerapp job execution list --name adote1p-migrate --resource-group rg-adote1 -o table
+```
 
-## Limites que impedem abertura pública agora
+O job cria a role runtime pelo object ID, migra esquema com advisory lock e transação e concede permissões mínimas. Não dá autorização de usuário da aplicação nem importa SQLite.
 
-O app ainda não possui identidade de usuário verificável, recuperação de conta, aprovação de empresas ou aceite de convite. Cookies protegidos e Key Vault não resolvem esses fluxos. Por isso o template abre somente homologação por IP e não inclui um botão ou parâmetro de abertura irrestrita. Não remova a restrição antes de resolver essas lacunas e rever LGPD.
+8. Defina enableApplication=true e faça validate/plan/apply. Teste primeiro com restrictWebToOperator=true. O smoke abaixo não cria contas nem contorna o Entra:
 
-Não há WAF, HA do banco, banco em múltiplas zonas, rate limit distribuído ou autoscaling além de uma réplica. Há egress necessário aos serviços Azure; um ambiente estritamente privado exige endpoints e controles adicionais com custo. Não há promessa de segurança absoluta ou prontidão de produção. DNS personalizado, orçamento, alertas, restauração e aprovação dos acessos devem ser concluídos no ambiente.
+```sh
+APP_ORIGIN=https://ENDERECO.azurecontainerapps.io node scripts/azure-smoke.mjs
+```
+
+9. Valide interativamente login, consentimento, retorno à mesma conta, autorização empresarial, administração, logout e recuperação com contas de teste autorizadas. Verifique que API e banco não aceitam acesso público direto e que runtime não tem DDL. Ensaie backup/restore e carga antes de admitir dados reais. Depois dos controles aprovados, restrictWebToOperator=false libera a página de login HTTPS mantendo autorização por Entra.
+
+## Rotação, rollback e dados legados
+
+Antes de 180 dias, execute o bootstrap com `--rotate-client-secret`; ele grava uma nova versão no Key Vault. Confirme atualização da revisão, teste login e só então revogue a credencial anterior no Entra. Rotacionar `--rotate-cookie-key` invalida retornos de login pendentes; sessões já emitidas seguem sua expiração/revogação. Não use tracing nem copie valores do Key Vault para arquivos versionados.
+
+Rollback usa imagem PostgreSQL anterior **compatível com o esquema e o requisito Entra atual**. Imagens v1 SQLite e v2 anteriores ao login obrigatório não são rollback seguro para produção. Voltar uma imagem não desfaz SQL. Procedimentos de recuperação e exclusões em [guia administrativo](../../docs/GUIA-ADMINISTRADORES.md).
+
+Não há importação automática de dados legados. Com escritas interrompidas, `python3 scripts/export-sqlite.py /origem/adote.db /local-protegido/backup.sqlite-export.json` gera snapshot privado. O importador PostgreSQL exige destino vazio e valida contagens/FKs em transação. Execute somente em runner autorizado na VNet, com arquivo privado e temporário. Ele invalida sessões antigas; o vínculo com identidades Entra deve ser definido e testado antes de admitir usuários legados. Não abra o banco à Internet para importar dados.
+
+## Evidências e limites
+
+Quatro testes locais aprovados: autorização/privacidade, cookies/CSRF, OIDC com provedor simulado e JWT assinado, migrações/transações. Teste de build AMD64 aprovado; auditorias npm sem vulnerabilidades conhecidas na consulta. O teste OIDC simulado não substitui login interativo no tenant real. CI usa actions fixadas por SHA, permissões contents:read e nenhum segredo de deploy. Situação na nuvem em IMPLANTACAO.md.
+
+Convite de elo com aceite, moderação/edição de vagas, notificações, candidaturas internas, rate limit distribuído e HA continuam fora da versão atual. O sistema opera inicialmente com participantes autorizados e acordo prévio de mentoria. Domínio personalizado, responsáveis, retenção administrativa, orçamento, alertas, RPO/RTO e capacidade devem ser formalizados. Não declarar produção pública plenamente validada apenas porque o deploy terminou.
 
 ## Fontes oficiais
 
+- [Fluxo Microsoft de código de autorização](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow)
+- [Atribuição de usuários ao aplicativo](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/assign-user-or-group-access-portal)
 - [PostgreSQL com identidade gerenciada](https://learn.microsoft.com/en-us/azure/postgresql/security/security-connect-with-managed-identity)
-- [PostgreSQL em rede privada](https://learn.microsoft.com/en-us/azure/postgresql/network/concepts-networking-private)
+- [PostgreSQL em rede privada e endpoint Storage](https://learn.microsoft.com/en-us/azure/postgresql/network/concepts-networking-private)
 - [Key Vault: service endpoints e firewall](https://learn.microsoft.com/en-us/azure/key-vault/general/overview-vnet-service-endpoints)
 - [Container Apps: referência a Key Vault](https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets)
-- [Disponibilidade de identidade no processo](https://learn.microsoft.com/en-us/azure/container-apps/managed-identity)
 - [Cobrança Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/billing)
-- [Preços públicos Azure](https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices)

@@ -26,6 +26,9 @@ async function request(path, { method = 'GET', body } = {}) {
 }
 
 export const api = {
+  authConfig: () => request('/auth/config'),
+  adminUsers: (offset = 0) => request(`/admin/users?limit=50&offset=${offset}`),
+  adminAction: (id, action) => request(`/admin/users/${encodeURIComponent(id)}/${action}`, { method: 'POST' }),
   signup: (payload) => request('/auth/signup', { method: 'POST', body: payload, auth: false }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),

@@ -9,7 +9,7 @@ await migrate();
 after(async () => { await db.exec(`DROP SCHEMA ${process.env.PGSCHEMA} CASCADE`); await db.close(); });
 test('migração idempotente e rollback completo diante de violação de chave estrangeira', async () => {
   await migrate();
-  assert.equal(Number((await db.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get()).n), 1);
+  assert.equal(Number((await db.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get()).n), 2);
   const id = randomUUID();
   await assert.rejects(db.transaction(async () => {
     await db.prepare("INSERT INTO users(id,name,role,token_hash) VALUES (?, ?, 'Empresa', '')").run(id, 'Conta temporária');

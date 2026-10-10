@@ -4,6 +4,7 @@ import { api } from './api'
 export const useStore = create((set, get) => ({
   currentUser: null,
   authChecked: false,
+  authConfig: { provider: null, identityReady: false, canRegisterCompany: false },
   users: [],
   elos: [],
   jobs: [],
@@ -13,10 +14,12 @@ export const useStore = create((set, get) => ({
   // Restore the server-managed HttpOnly session on app load.
   restoreSession: async () => {
     try {
+      const authConfig = await api.authConfig()
+      set({ authConfig })
       const { user } = await api.me()
       set({ currentUser: user, authChecked: true })
-    } catch {
-      set({ currentUser: null, authChecked: true })
+    } catch (error) {
+      set({ currentUser: null, authChecked: true, error: error.message })
     }
   },
 
@@ -36,7 +39,7 @@ export const useStore = create((set, get) => ({
       set({ error: error.message })
       return
     }
-    set({ currentUser: null, users: [], elos: [], jobs: [] })
+    set({ currentUser: null, users: [], elos: [], jobs: [], authConfig: { ...get().authConfig, identityReady: false } })
   },
 
   updateProfile: async (updates) => {
@@ -60,7 +63,7 @@ export const useStore = create((set, get) => ({
   // Right to erasure — anonymizes the account server-side and logs the user out.
   deleteAccount: async () => {
     await api.deleteAccount()
-    set({ currentUser: null, users: [], elos: [], jobs: [] })
+    set({ currentUser: null, users: [], elos: [], jobs: [], authConfig: { ...get().authConfig, identityReady: false } })
   },
 
   loadUsers: async () => {

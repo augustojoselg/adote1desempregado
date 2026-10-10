@@ -30,7 +30,19 @@
       "value": 0
     },
     "runtimeSecrets": {
-      "value": []
+      "value": [
+        {
+          "name": "oidc-client-secret",
+          "envName": "OIDC_CLIENT_SECRET"
+        },
+        {
+          "name": "oidc-cookie-key",
+          "envName": "OIDC_COOKIE_KEY"
+        }
+      ]
+    },
+    "oidcClientId": {
+      "value": "SUBSTITUA-CLIENT-ID-ENTRA"
     }
   }
 }

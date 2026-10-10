@@ -6,7 +6,13 @@ O responsável autorizou provisionamento, commit/push, PR e documentação de us
 
 ## Estado
 
-Provisionamento em andamento. A tentativa East US 2 foi cancelada após o PostgreSQL retornar restrição regional. O ambiente vazio adote1-env está em exclusão para liberar a quota de um ambiente por assinatura. Identidades, permissões AcrPull, vault vazio e workspace provisórios já foram removidos. A rede provisória será removida após a exclusão do ambiente. O ACR foi reduzido para Basic e preserva as imagens. Este arquivo será atualizado com o resultado observado, migração, endereço e verificações. O ingresso permanece restrito até concluir a autenticação recuperável e os critérios de liberação pública. Não há migração automática dos dados SQLite.
+Ambiente `adote1p-env` provisionado com sucesso em Central US. PostgreSQL 17 privado, autenticação Entra e Key Vault provisionados. Os recursos provisórios `adote1-*` foram removidos; o ACR existente foi preservado e reduzido para Basic.
+
+Job `adote1p-migrate-099he7o` finalizado com status Succeeded em 10/10/2026 às 22:43:47 UTC: esquema e permissões de runtime aplicados. A API e o frontend estão em implantação, inicialmente com ingresso restrito ao operador.
+
+Origem prevista: `https://adote1p-web.bluewave-facfb082.centralus.azurecontainerapps.io`. O retorno OIDC foi configurado nessa origem com `/api/auth/callback`. A atribuição de acesso no Entra é obrigatória; o operador tem permissão Admin. Secrets OIDC estão no Key Vault, sem valores no código.
+
+Não houve importação de dados SQLite. Login interativo, restauração e testes de carga ainda devem ser verificados. Este registro será atualizado após as verificações HTTP.
 
 ## Evidências prévias
 

@@ -10,7 +10,7 @@ Conectar profissionais a mentores e vagas, com acompanhamento da recolocação. 
 | --- | --- | --- |
 | Preparação técnica | Operação implanta recursos, executa migração e testa identidades, rede e cookies | Readiness aprovado e banco/API sem acesso público direto |
 | Validação funcional | Operação testa mentor, profissional, empresa, elo, vaga, exportação e exclusão com dados fictícios | Jornadas e negações de acesso documentadas |
-| Liberação de identidade | Responsável escolhe login recuperável; equipe implementa e testa login, recuperação e revogação | Conta pode voltar a acessar com segurança após sair/expirar |
+| Liberação de identidade | Operação autoriza contas Entra; equipe testa login interativo, recuperação pelo provedor e revogação | Conta pode voltar a acessar com segurança após sair/expirar |
 | Preparação operacional | Designar atendimento e encarregado; validar empresas, privacidade, alertas, custos e recuperação | Responsáveis e procedimentos aprovados; restauração e carga ensaiadas |
 | Piloto com usuários reais | Grupo autorizado recebe treinamento e canal de suporte | Problemas críticos resolvidos e acessos revisados |
 | Abertura pública | Revisão final dos controles e capacidade; domínio e HTTPS validados | Liberação registrada e monitoramento acompanhado |
@@ -29,4 +29,4 @@ Participação voluntária e gratuita; nenhuma promessa de contratação. Compar
 
 ## Decisões ainda necessárias
 
-Definir provedor de login, responsáveis por atendimento/privacidade, aprovação empresarial, orçamento mensal e alertas, critérios de carga, RPO/RTO e domínio do aplicativo. O domínio institucional conhecido é `empregosocial.com.br`; a troca de DNS depende do acesso ao provedor e da avaliação do site existente, para evitar interrompê-lo.
+Login inicial: Microsoft Entra single-tenant, com convidados B2B e papéis Member, Company e Admin. Definir responsáveis por atendimento/privacidade, aprovação empresarial, orçamento mensal e alertas, critérios de carga, RPO/RTO e domínio do aplicativo. O domínio institucional conhecido é `empregosocial.com.br`; a troca de DNS depende do acesso ao provedor e da avaliação do site existente, para evitar interrompê-lo.
